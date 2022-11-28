@@ -3,6 +3,10 @@ extern crate sdl2;
 
 use sdl2::{event::Event, keyboard::Keycode};
 
+fn clear_frame() {
+    unsafe { gl::Clear(gl::COLOR_BUFFER_BIT) };
+}
+
 fn main() {
     let sdl = sdl2::init().unwrap();
     let video_subsystem = sdl.video().unwrap();
@@ -33,7 +37,7 @@ fn main() {
             }
         }
 
-        unsafe { gl::Clear(gl::COLOR_BUFFER_BIT) }
+        clear_frame();
 
         window.gl_swap_window();
     }
