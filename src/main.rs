@@ -18,9 +18,7 @@ fn main() {
     let _gl =
         gl::load_with(|s| video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void);
 
-    unsafe {
-        gl::ClearColor(1., 0., 0., 1.);
-    }
+    unsafe { gl::ClearColor(0.66, 0.66, 0.66, 1.) };
 
     let mut pump = sdl.event_pump().unwrap();
     'main: loop {
