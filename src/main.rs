@@ -17,11 +17,11 @@ fn main() {
         .build()
         .expect("Couldn't create window");
 
-    let _gl_context = window
+    let _ = window
         .gl_create_context()
         .expect("Couldn't create openGL context");
-    let _gl =
-        gl::load_with(|s| video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void);
+
+    gl::load_with(|s| video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void);
 
     unsafe { gl::ClearColor(0.66, 0.66, 0.66, 1.) };
 
