@@ -2,6 +2,8 @@ extern crate gl;
 extern crate sdl2;
 
 use sdl2::{event::Event, keyboard::Keycode};
+mod engine;
+mod gl_check;
 
 fn clear_frame() {
     unsafe { gl::Clear(gl::COLOR_BUFFER_BIT) };
@@ -10,6 +12,11 @@ fn clear_frame() {
 fn main() {
     let sdl = sdl2::init().expect("Couldn't initialize SDL2.");
     let video_subsystem = sdl.video().expect("Couldn't create video system.");
+
+    let gl_attr = video_subsystem.gl_attr();
+    gl_attr.set_context_profile(sdl2::video::GLProfile::Core);
+    gl_attr.set_context_version(4, 5);
+
     let window = video_subsystem
         .window("POGLA project", 1024, 1024)
         .resizable()
