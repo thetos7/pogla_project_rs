@@ -1,4 +1,4 @@
-use sdl2::video::Window;
+use sdl2::{event::Event, keyboard::Keycode, video::Window, EventPump};
 
 use crate::gl_check;
 
@@ -7,6 +7,8 @@ pub struct Engine {
     sdl: Option<sdl2::Sdl>,
     video_subsystem: Option<sdl2::VideoSubsystem>,
     window: Option<Window>,
+    _gl_context: Option<sdl2::video::GLContext>,
+    pump: Option<EventPump>,
 }
 
 static mut INSTANCE: Option<Engine> = None;
@@ -21,9 +23,8 @@ impl Engine {
     pub unsafe fn instance() -> &'static mut Self {
         if let None = INSTANCE {
             INSTANCE = Some(Engine::new());
-            println!("only prints once!")
         }
-        INSTANCE.as_mut().unwrap()
+        INSTANCE.as_mut().unwrap_unchecked()
     }
 
     fn _init_sdl(&mut self) {
@@ -40,20 +41,21 @@ impl Engine {
             .build()
             .expect("Couldn't create window");
 
-        let _ = window
+        let _gl_context = window
             .gl_create_context()
             .expect("Couldn't create openGL context");
 
         gl::load_with(|s| video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void);
 
+        let pump = sdl
+            .event_pump()
+            .expect("SDL Event pump creation failed, one may already exist.");
+
         self.sdl = Some(sdl);
         self.video_subsystem = Some(video_subsystem);
         self.window = Some(window);
-    }
-
-    fn _init_load_gl(&mut self) {
-        let video_subsystem = self.video_subsystem.as_ref().unwrap();
-        gl::load_with(|s| video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void);
+        self.pump = Some(pump);
+        self._gl_context = Some(_gl_context);
     }
 
     fn _init_gl(&mut self) {
@@ -76,8 +78,44 @@ impl Engine {
 
     pub fn init(&mut self) -> &mut Self {
         self._init_sdl();
-        self._init_load_gl();
         self._init_gl();
+        self
+    }
+
+    fn _handle_events(&mut self, should_close: &mut bool) {
+        for event in self.pump.as_mut().unwrap().poll_iter() {
+            match event {
+                Event::Quit { .. }
+                | Event::KeyDown {
+                    keycode: Some(Keycode::Escape),
+                    ..
+                } => {
+                    *should_close = true;
+                    return;
+                }
+                _ => {}
+            }
+        }
+    }
+
+    pub fn update(&mut self, should_close: &mut bool) -> &mut Self {
+        self._handle_events(should_close);
+        if *should_close {
+            return self;
+        }
+        self
+    }
+
+    fn _clear_frame(&self) {
+        unsafe { gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT) };
+    }
+
+    pub fn display(&self) -> &Self {
+        self._clear_frame();
+        self
+    }
+    pub fn swap_buffer(&self) -> &Self {
+        self.window.as_ref().unwrap().gl_swap_window();
         self
     }
 }
