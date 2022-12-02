@@ -13,6 +13,6 @@ pub(crate) fn check_gl_error(file: &str, line: u32) -> bool {
 #[macro_export]
 macro_rules! gl_check {
     () => {
-        crate::gl_check::check_gl_error(file!(), line!())
+        $crate::gl_check::check_gl_error(file!(), line!())
     };
 }
