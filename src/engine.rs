@@ -1,6 +1,6 @@
 use sdl2::{event::Event, keyboard::Keycode, video::Window, EventPump};
 
-use crate::gl_check;
+use crate::gl_checked;
 
 #[derive(Default)]
 pub struct Engine {
@@ -61,18 +61,14 @@ impl Engine {
     fn _init_gl(&mut self) {
         unsafe {
             const PIXEL_BYTE_ALIGNMENT_LEN: i32 = 1; // 1 byte for 8-bit deep color
-            gl::Enable(gl::DEPTH_TEST);
-            gl_check!();
-            gl::PolygonMode(gl::FRONT_AND_BACK, gl::FILL);
-            gl_check!();
-            // gl::Enable(gl::CULL_FACE);
-            // gl_check!();
-            gl::ClearColor(0.66, 0.66, 0.66, 1.);
-            gl_check!();
-            gl::PixelStorei(gl::PACK_ALIGNMENT, PIXEL_BYTE_ALIGNMENT_LEN);
-            gl_check!();
-            gl::PixelStorei(gl::UNPACK_ALIGNMENT, PIXEL_BYTE_ALIGNMENT_LEN);
-            gl_check!();
+            gl_checked! {
+                gl::Enable(gl::DEPTH_TEST);
+                gl::PolygonMode(gl::FRONT_AND_BACK, gl::FILL);
+                // gl::Enable(gl::CULL_FACE);
+                gl::ClearColor(0.66, 0.66, 0.66, 1.);
+                gl::PixelStorei(gl::PACK_ALIGNMENT, PIXEL_BYTE_ALIGNMENT_LEN);
+                gl::PixelStorei(gl::UNPACK_ALIGNMENT, PIXEL_BYTE_ALIGNMENT_LEN);
+            };
         }
     }
 
