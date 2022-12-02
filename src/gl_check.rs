@@ -18,7 +18,7 @@ fn stringify_gl_error_code(code: u32) -> String {
 pub(crate) fn check_gl_error(file: &str, line: u32, sub_expression: Option<u32>) -> bool {
     let error_code = unsafe { gl::GetError() };
     if error_code != gl::NO_ERROR {
-        let header = Color::Red.paint("[OpenGL Error]");
+        let header = Color::Blue.paint("[OpenGL]");
 
         let line_detail = match sub_expression {
             None => format!("at line {}", Color::Cyan.paint(line.to_string())),
@@ -29,7 +29,7 @@ pub(crate) fn check_gl_error(file: &str, line: u32, sub_expression: Option<u32>)
             ),
         };
 
-        eprintln!(
+        log::error!(
             "{header} {file} {line_detail}: got code `0x{code:x}` ({code}): `{code_str}`",
             file = Color::Green.paint(file),
             code = error_code,

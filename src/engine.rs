@@ -1,7 +1,14 @@
+use std::collections::HashMap;
+
 use sdl2::{event::Event, keyboard::Keycode, video::Window, EventPump};
 
-use crate::gl_checked;
-
+use crate::{
+    gl_checked,
+    program::{
+        shader::{Shader, ShaderType},
+        Program,
+    },
+};
 #[derive(Default)]
 pub struct Engine {
     sdl: Option<sdl2::Sdl>,
@@ -9,6 +16,7 @@ pub struct Engine {
     window: Option<Window>,
     _gl_context: Option<sdl2::video::GLContext>,
     pump: Option<EventPump>,
+    programs: HashMap<String, Program>,
 }
 
 static mut INSTANCE: Option<Engine> = None;
@@ -72,9 +80,36 @@ impl Engine {
         }
     }
 
+    fn _init_shaders(&mut self) {
+        let program = Program::builder("basic")
+            .add_shader(
+                "basic_vertex",
+                Shader::new(ShaderType::Vertex)
+                    .load("resources/shaders/basic.vert")
+                    .expect("Couldn't read basic_shader vertex file"),
+            )
+            .add_shader(
+                "basic_frag",
+                Shader::new(ShaderType::Fragment)
+                    .load("resources/shaders/basic.frag")
+                    .expect("Couldn't read basic_shader fragment file"),
+            )
+            .build();
+
+        let program = match program {
+            Ok(prog) => prog,
+            Err(error) => {
+                error.log_error();
+                panic!("program creation failed");
+            }
+        };
+        self.programs.insert("basic".into(), program);
+    }
+
     pub fn init(&mut self) -> &mut Self {
         self._init_sdl();
         self._init_gl();
+        self._init_shaders();
         self
     }
 
