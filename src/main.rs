@@ -11,6 +11,7 @@ mod gl_utils;
 mod logger;
 mod program;
 mod traits;
+mod objects;
 
 fn main() {
     logger::init_default();
