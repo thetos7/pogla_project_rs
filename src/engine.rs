@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{cell::RefCell, collections::HashMap, rc::Rc, time::Instant};
 
 use sdl2::{event::Event, keyboard::Keycode, video::Window, EventPump};
 
@@ -8,6 +8,7 @@ use crate::{
         shader::{Shader, ShaderType},
         Program,
     },
+    traits::{Drawable, Updateable},
 };
 #[derive(Default)]
 pub struct Engine {
@@ -17,6 +18,9 @@ pub struct Engine {
     _gl_context: Option<sdl2::video::GLContext>,
     pump: Option<EventPump>,
     programs: HashMap<String, Program>,
+    last_frame_time: Option<Instant>,
+    updateables: Vec<Rc<RefCell<dyn Updateable>>>,
+    drawables: Vec<Rc<RefCell<dyn Drawable>>>,
 }
 
 static mut INSTANCE: Option<Engine> = None;
@@ -134,6 +138,19 @@ impl Engine {
         if *should_close {
             return self;
         }
+
+        let delta = if let Some(instant) = self.last_frame_time {
+            instant.elapsed().as_secs_f32()
+        } else {
+            0f32
+        };
+
+        self.last_frame_time = Some(Instant::now());
+
+        for item in self.updateables.iter_mut() {
+            item.borrow_mut().update(delta)
+        }
+
         self
     }
 
@@ -143,6 +160,11 @@ impl Engine {
 
     pub fn display(&self) -> &Self {
         self._clear_frame();
+
+        for item in self.drawables.iter() {
+            item.borrow().draw();
+        }
+
         self
     }
     pub fn swap_buffer(&self) -> &Self {
