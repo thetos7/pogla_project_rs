@@ -7,23 +7,12 @@ extern crate sdl2;
 use engine::Engine;
 mod engine;
 mod gl_check;
-mod program;
-use env_logger::Builder;
-use log::LevelFilter;
-use std::io::Write;
 mod gl_utils;
+mod logger;
+mod program;
 
 fn main() {
-    Builder::new()
-        .format(|buf, record| {
-            write!(buf, "[{}]", record.level())?;
-            if let (Some(file), Some(line)) = (record.file(), record.line()) {
-                write!(buf, "({file}:{line})")?;
-            }
-            writeln!(buf, "{}", record.args())
-        })
-        .filter(None, LevelFilter::Info)
-        .init();
+    logger::init_default();
 
     let engine = unsafe { Engine::instance() };
 
