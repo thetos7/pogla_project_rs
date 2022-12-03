@@ -11,6 +11,7 @@ mod program;
 use env_logger::Builder;
 use log::LevelFilter;
 use std::io::Write;
+mod gl_utils;
 
 fn main() {
     Builder::new()

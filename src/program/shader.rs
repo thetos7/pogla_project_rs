@@ -1,6 +1,10 @@
-use std::{fs, io};
+use std::{
+    ffi::CString,
+    fs, io,
+    ptr::{null, null_mut},
+};
 
-use crate::gl_check;
+use crate::{gl_check, gl_utils::new_log_buffer};
 
 #[derive(Clone, Copy)]
 #[allow(unused)]
@@ -14,7 +18,7 @@ pub enum ShaderType {
 }
 
 impl ShaderType {
-    pub fn gl_constant(self) -> gl::types::GLenum {
+    pub const fn gl_constant(self) -> gl::types::GLenum {
         match self {
             Self::Vertex => gl::VERTEX_SHADER,
             Self::TesselationControl => gl::TESS_CONTROL_SHADER,
@@ -25,7 +29,7 @@ impl ShaderType {
         }
     }
 
-    pub fn mask(self) -> u8 {
+    pub const fn mask(self) -> u8 {
         match self {
             Self::Vertex => 1 << 0,
             Self::TesselationControl => 1 << 1,
@@ -91,34 +95,38 @@ impl Shader {
             let shader_id = gl::CreateShader(self.shader_type.gl_constant());
             gl_check!();
 
-            let sources = self
+            let sources_cstr = self
                 .sources
                 .iter()
-                .map(|s| s.as_ptr() as *const gl::types::GLchar)
-                .collect::<Vec<_>>()
-                .as_ptr();
-            gl::ShaderSource(shader_id, self.sources.len() as i32, sources, &0);
+                .map(|s| CString::new(s.as_bytes()).unwrap())
+                .collect::<Vec<_>>(); // necessary to keep sources allocated until the end
+            let sources = sources_cstr.iter().map(|s| s.as_ptr()).collect::<Vec<_>>();
+            gl::ShaderSource(
+                shader_id,
+                self.sources.len() as i32,
+                sources.as_ptr(),
+                null(),
+            );
             gl_check!();
 
             gl::CompileShader(shader_id);
             gl_check!();
 
             let mut compile_status: gl::types::GLint = gl::TRUE as _;
-            gl::GetShaderiv(shader_id, gl::INFO_LOG_LENGTH, &mut compile_status);
+            gl::GetShaderiv(shader_id, gl::COMPILE_STATUS, &mut compile_status);
             if compile_status != gl::TRUE as _ {
                 let mut log_size: gl::types::GLint = 0;
                 gl::GetShaderiv(shader_id, gl::INFO_LOG_LENGTH, &mut log_size);
-                let mut shader_log = String::with_capacity((log_size + 1) as usize);
-                gl::GetShaderInfoLog(
-                    shader_id,
-                    log_size,
-                    &mut log_size,
-                    shader_log.as_mut_ptr() as _,
-                );
-
+                gl_check!();
+                let shader_log: CString = new_log_buffer(log_size as usize + 1);
+                gl::GetShaderInfoLog(shader_id, log_size, null_mut(), shader_log.as_ptr() as _);
+                gl_check!();
                 gl::DeleteShader(shader_id);
+                gl_check!();
 
-                return Err(ShaderCompileError::CompilationError(shader_log));
+                return Err(ShaderCompileError::CompilationError(
+                    shader_log.to_string_lossy().into_owned(),
+                ));
             }
 
             Ok(ShaderHandle {

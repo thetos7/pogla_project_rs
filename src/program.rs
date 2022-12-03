@@ -1,6 +1,6 @@
-use crate::{gl_check, program::shader::ShaderCompileError};
+use crate::{gl_check, gl_utils::new_log_buffer, program::shader::ShaderCompileError};
 
-use self::shader::{Shader, ShaderHandle};
+use self::shader::{Shader, ShaderHandle, ShaderType};
 
 pub mod shader;
 
@@ -8,6 +8,7 @@ pub struct Program {
     id: gl::types::GLuint,
     shaders: Vec<ShaderHandle>,
     shader_flags: u8,
+    name: String,
 }
 
 impl Program {
@@ -28,6 +29,34 @@ impl Program {
         unsafe {
             gl::UseProgram(self.id);
             gl_check!();
+        }
+    }
+
+    pub fn is_compute(&self) -> bool {
+        self.shader_flags & ShaderType::Compute.mask() != 0
+    }
+}
+
+impl Drop for Program {
+    fn drop(&mut self) {
+        // unbind program if current
+        let mut current_program = 0i32;
+        unsafe {
+            gl::GetIntegerv(gl::CURRENT_PROGRAM, &mut current_program);
+            gl_check!();
+        }
+        if current_program == self.id as _ {
+            Program::unbind();
+            log::warn!(
+                "Unbinding current program number {id} (`{name}`) because of dropping",
+                id = self.id,
+                name = self.name
+            )
+        }
+
+        // delete program
+        unsafe {
+            gl::DeleteProgram(self.id);
         }
     }
 }
@@ -88,7 +117,7 @@ impl ProgramBuilder {
                             match error {
                                 ShaderCompileError::CompilationError(log) => {
                                     log::warn!(
-                                        "[{prog_name}]<{name}> Shader compilation error, log:\n{log}",
+                                        "[{prog_name}]<{name}> Shader compilation error.\n---- LOG ----\n{log}",
                                         prog_name = self.name
                                     )
                                 }
@@ -107,26 +136,32 @@ impl ProgramBuilder {
             gl::LinkProgram(program_id);
             gl_check!();
             gl::GetProgramiv(program_id, gl::LINK_STATUS, &mut link_status);
+            gl_check!();
 
             if link_status != gl::TRUE as _ {
                 let mut log_size = 0;
                 gl::GetProgramiv(program_id, gl::INFO_LOG_LENGTH, &mut log_size);
-                let mut program_log = String::with_capacity(log_size as usize + 1);
+                gl_check!();
+                let program_log = new_log_buffer(log_size as usize + 1);
                 gl::GetProgramInfoLog(
                     program_id,
                     log_size,
                     &mut log_size,
-                    program_log.as_mut_ptr() as _,
+                    program_log.as_ptr() as _,
                 );
+                gl_check!();
 
                 gl::DeleteProgram(program_id);
-                return Err(ProgramBuildError::LinkFail(program_log));
+                return Err(ProgramBuildError::LinkFail(
+                    program_log.to_string_lossy().into_owned(),
+                ));
             }
 
             Ok(Program {
                 id: program_id,
                 shader_flags,
                 shaders: compiled_shaders,
+                name: self.name,
             })
         }
     }
