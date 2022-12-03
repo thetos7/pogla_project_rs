@@ -10,6 +10,7 @@ mod gl_check;
 mod gl_utils;
 mod logger;
 mod program;
+mod traits;
 
 fn main() {
     logger::init_default();
