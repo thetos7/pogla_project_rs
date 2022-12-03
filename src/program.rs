@@ -6,7 +6,7 @@ pub mod shader;
 
 pub struct Program {
     id: gl::types::GLuint,
-    shaders: Vec<ShaderHandle>,
+    _shaders: Vec<ShaderHandle>, // program needs to hold onto shader handles if needed and fro simplified cleanup, maybe unnecessary
     shader_flags: u8,
     name: String,
 }
@@ -160,7 +160,7 @@ impl ProgramBuilder {
             Ok(Program {
                 id: program_id,
                 shader_flags,
-                shaders: compiled_shaders,
+                _shaders: compiled_shaders,
                 name: self.name,
             })
         }
