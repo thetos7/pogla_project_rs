@@ -3,10 +3,11 @@ use cgmath::{Matrix4, Vector3, Vector4};
 use crate::gl_check;
 
 use super::Program;
+use gl::types::{GLenum, GLfloat, GLint, GLuint};
 
-type LocType = gl::types::GLuint;
-type SizeType = gl::types::GLint;
-type TypeEnum = gl::types::GLenum;
+type LocType = GLuint;
+type SizeType = GLint;
+type TypeEnum = GLenum;
 
 fn stringify_type(value_type: TypeEnum) -> String {
     match value_type {
@@ -78,7 +79,7 @@ impl Uniform<'_> {
         }
     }
 
-    pub fn set_float(&mut self, value: gl::types::GLfloat) {
+    pub fn set_float(&mut self, value: GLfloat) {
         if self.value_type != gl::FLOAT {
             self.type_error("float");
         }
@@ -114,7 +115,7 @@ impl Uniform<'_> {
         }
     }
 
-    pub fn set_int(&mut self, value: gl::types::GLint) {
+    pub fn set_int(&mut self, value: GLint) {
         if self.value_type != gl::INT && self.value_type != gl::SAMPLER_2D {
             self.type_error("int or sampler2D")
         }
