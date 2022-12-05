@@ -33,10 +33,7 @@ impl Engine {
     }
 
     pub unsafe fn instance() -> &'static mut Self {
-        if let None = INSTANCE {
-            INSTANCE = Some(Engine::new());
-        }
-        INSTANCE.as_mut().unwrap_unchecked()
+        INSTANCE.get_or_insert_with(Engine::new)
     }
 
     fn _init_sdl(&mut self) {
