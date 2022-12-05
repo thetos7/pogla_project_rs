@@ -1,5 +1,7 @@
 use cgmath::{Matrix4, Vector3, Vector4};
 
+use crate::gl_check;
+
 use super::Program;
 
 type LocType = gl::types::GLuint;
@@ -72,6 +74,7 @@ impl Uniform<'_> {
         let a = AsRef::<[_; 16]>::as_ref(mat);
         unsafe {
             gl::ProgramUniformMatrix4fv(self.program.id, self.location as _, 1, gl::FALSE, a as _);
+            gl_check!();
         }
     }
 
@@ -81,6 +84,7 @@ impl Uniform<'_> {
         }
         unsafe {
             gl::ProgramUniform1f(self.program.id, self.location as _, value);
+            gl_check!();
         }
     }
 
@@ -90,6 +94,7 @@ impl Uniform<'_> {
         }
         unsafe {
             gl::ProgramUniform3f(self.program.id, self.location as _, vec.x, vec.y, vec.z);
+            gl_check!();
         }
     }
     pub fn set_vec4(&mut self, vec: &Vector4<f32>) {
@@ -105,6 +110,7 @@ impl Uniform<'_> {
                 vec.z,
                 vec.w,
             );
+            gl_check!();
         }
     }
 
@@ -114,6 +120,7 @@ impl Uniform<'_> {
         }
         unsafe {
             gl::ProgramUniform1i(self.program.id, self.location as _, value);
+            gl_check!();
         }
     }
 }
