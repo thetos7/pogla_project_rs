@@ -3,6 +3,7 @@ extern crate env_logger;
 extern crate gl;
 extern crate log;
 extern crate sdl2;
+extern crate cgmath;
 
 use engine::Engine;
 mod engine;
