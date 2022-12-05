@@ -3,6 +3,8 @@ use crate::{gl_check, gl_utils::new_log_buffer, program::shader::ShaderCompileEr
 use self::shader::{Shader, ShaderHandle, ShaderType};
 
 pub mod shader;
+pub mod uniform;
+pub mod attribute;
 
 pub struct Program {
     id: gl::types::GLuint,
