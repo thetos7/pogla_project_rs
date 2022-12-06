@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 extern crate ansi_term;
 extern crate env_logger;
 extern crate gl;
