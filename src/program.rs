@@ -1,3 +1,5 @@
+use gl::types::GLuint;
+
 use crate::{gl_check, gl_utils::new_log_buffer, program::shader::ShaderCompileError};
 
 use self::shader::{Shader, ShaderHandle, ShaderType};
@@ -7,7 +9,7 @@ pub mod uniform;
 pub mod attribute;
 
 pub struct Program {
-    id: gl::types::GLuint,
+    id: GLuint,
     _shaders: Vec<ShaderHandle>, // program needs to hold onto shader handles if needed and fro simplified cleanup, maybe unnecessary
     shader_flags: u8,
     name: String,

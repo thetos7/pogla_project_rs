@@ -60,11 +60,11 @@ impl Engine {
             .event_pump()
             .expect("SDL Event pump creation failed, one may already exist.");
 
-        self.sdl = Some(sdl);
-        self.video_subsystem = Some(video_subsystem);
-        self.window = Some(window);
-        self.pump = Some(pump);
-        self._gl_context = Some(_gl_context);
+        self.sdl.insert(sdl);
+        self.video_subsystem.insert(video_subsystem);
+        self.window.insert(window);
+        self.pump.insert(pump);
+        self._gl_context.insert(_gl_context);
     }
 
     fn _init_gl(&mut self) {
