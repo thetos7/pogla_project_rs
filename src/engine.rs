@@ -142,7 +142,7 @@ impl Engine {
             0f32
         };
 
-        self.last_frame_time = Some(Instant::now());
+        self.last_frame_time.insert(Instant::now());
 
         for item in self.updateables.iter_mut() {
             item.borrow_mut().update(delta)
