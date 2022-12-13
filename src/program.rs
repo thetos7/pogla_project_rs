@@ -1,18 +1,35 @@
-use gl::types::GLuint;
+use std::{
+    cell::RefCell,
+    collections::HashMap,
+    ffi::CString,
+    ptr::{null_mut},
+    rc::Rc,
+};
+
+use gl::types::{GLenum, GLint, GLuint};
 
 use crate::{gl_check, gl_utils::new_log_buffer, program::shader::ShaderCompileError};
 
-use self::shader::{Shader, ShaderHandle, ShaderType};
+use self::{
+    shader::{Shader, ShaderHandle, ShaderType},
+    uniform::Uniform,
+};
 
+pub mod attribute;
 pub mod shader;
 pub mod uniform;
-pub mod attribute;
 
+pub type ProgramIdType = GLuint;
+pub type ProgramType = Rc<RefCell<Program>>;
+pub type UniformEntryType = Rc<RefCell<Uniform>>;
+
+#[derive(Debug)]
 pub struct Program {
-    id: GLuint,
+    id: ProgramIdType,
     _shaders: Vec<ShaderHandle>, // program needs to hold onto shader handles if needed and fro simplified cleanup, maybe unnecessary
     shader_flags: u8,
     name: String,
+    uniforms: HashMap<String, UniformEntryType>,
 }
 
 impl Program {
@@ -38,6 +55,10 @@ impl Program {
 
     pub fn is_compute(&self) -> bool {
         self.shader_flags & ShaderType::Compute.mask() != 0
+    }
+
+    pub fn uniform(&self, name: impl Into<String>) -> &UniformEntryType {
+        self.uniforms.get(&name.into()).unwrap()
     }
 }
 
@@ -91,8 +112,66 @@ impl ProgramBuilder {
         self
     }
 
+    fn build_uniform_map<'a>(program: &ProgramType) {
+        let mut prog = program.borrow_mut();
+        let mut max_name_length: GLint = 0;
+        unsafe {
+            gl::GetProgramiv(prog.id, gl::ACTIVE_UNIFORM_MAX_LENGTH, &mut max_name_length);
+            gl_check!();
+        }
+        let mut uniform_count: GLint = 0;
+        unsafe {
+            gl::GetProgramiv(prog.id, gl::ACTIVE_UNIFORMS, &mut uniform_count);
+            gl_check!();
+        }
+        let uniform_count = uniform_count;
+
+        let mut name: Vec<u8> = vec![0; max_name_length as usize];
+
+        for i in 0..uniform_count as u32 {
+            let mut uniform_type: GLenum = 0;
+            let mut size: GLint = 0;
+
+            unsafe {
+                gl::GetActiveUniform(
+                    prog.id,
+                    i,
+                    max_name_length + 1,
+                    null_mut(),
+                    &mut size,
+                    &mut uniform_type,
+                    name.as_mut_ptr() as _,
+                );
+                gl_check!();
+            }
+
+            let loc = unsafe {
+                let loc = gl::GetUniformLocation(prog.id, name.as_ptr() as _);
+                gl_check!();
+                loc
+            };
+
+            let name = unsafe {
+                CString::from_vec_with_nul_unchecked(name.clone())
+                    .to_string_lossy()
+                    .into_owned()
+            };
+
+            prog.uniforms.insert(
+                name.clone(),
+                Rc::new(RefCell::new(Uniform::new(
+                    name,
+                    loc,
+                    uniform_type,
+                    size,
+                    Rc::downgrade(&program),
+                ))),
+            );
+        }
+    }
+
     #[must_use]
-    pub fn build(self) -> Result<Program, ProgramBuildError> {
+    pub fn build<'a>(self) -> Result<ProgramType, ProgramBuildError> {
         unsafe {
             let program_id = gl::CreateProgram();
             gl_check!();
@@ -161,12 +240,15 @@ impl ProgramBuilder {
                 ));
             }
 
-            Ok(Program {
+            let prog = Rc::new(RefCell::new(Program {
                 id: program_id,
                 shader_flags,
                 _shaders: compiled_shaders,
                 name: self.name,
-            })
+                uniforms: Default::default(),
+            }));
+            Self::build_uniform_map(&prog);
+            Ok(prog)
         }
     }
 }

@@ -10,6 +10,7 @@ use crate::{
     },
     traits::{Drawable, Updateable},
 };
+
 #[derive(Default)]
 pub struct Engine {
     sdl: Option<sdl2::Sdl>,
@@ -17,7 +18,7 @@ pub struct Engine {
     window: Option<Window>,
     _gl_context: Option<sdl2::video::GLContext>,
     pump: Option<EventPump>,
-    programs: HashMap<String, Program>,
+    programs: HashMap<String, Rc<RefCell<Program>>>,
     last_frame_time: Option<Instant>,
     updateables: Vec<Rc<RefCell<dyn Updateable>>>,
     drawables: Vec<Rc<RefCell<dyn Drawable>>>,
@@ -104,6 +105,7 @@ impl Engine {
                 panic!("program creation failed");
             }
         };
+
         self.programs.insert("basic".into(), program);
     }
 

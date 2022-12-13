@@ -6,7 +6,7 @@ use std::{
 
 use crate::{gl_check, gl_utils::new_log_buffer};
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 #[allow(unused)]
 pub enum ShaderType {
     Vertex,
@@ -60,6 +60,7 @@ pub struct Shader {
     sources: Vec<String>,
 }
 
+#[derive(Debug)]
 pub struct ShaderHandle {
     pub shader_type: ShaderType,
     pub id: gl::types::GLuint,
