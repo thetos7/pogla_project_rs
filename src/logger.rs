@@ -39,5 +39,6 @@ pub fn init(filter: Option<LevelFilter>) {
     Builder::new()
         .format(logger_write)
         .filter(None, filter.unwrap_or(LevelFilter::Info))
+        .parse_env("LOG_LEVEL")
         .init();
 }
