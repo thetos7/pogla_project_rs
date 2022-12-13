@@ -1,10 +1,4 @@
-use std::{
-    cell::RefCell,
-    collections::HashMap,
-    ffi::CString,
-    ptr::{null_mut},
-    rc::Rc,
-};
+use std::{cell::RefCell, collections::HashMap, ffi::CString, ptr::null_mut, rc::Rc};
 
 use gl::types::{GLenum, GLint, GLuint};
 
@@ -57,8 +51,8 @@ impl Program {
         self.shader_flags & ShaderType::Compute.mask() != 0
     }
 
-    pub fn uniform(&self, name: impl Into<String>) -> &UniformEntryType {
-        self.uniforms.get(&name.into()).unwrap()
+    pub fn uniform(&self, name: impl Into<String>) -> Option<&UniformEntryType> {
+        self.uniforms.get(&name.into())
     }
 }
 
