@@ -12,7 +12,7 @@ type SizeType = GLint;
 type TypeEnum = GLenum;
 type ProgramType = Weak<RefCell<Program>>;
 
-fn stringify_type(value_type: TypeEnum) -> String {
+pub fn stringify_type(value_type: TypeEnum) -> String {
     match value_type {
         gl::FLOAT => "float".to_owned(),
         gl::FLOAT_MAT4 => "mat4".to_owned(),
