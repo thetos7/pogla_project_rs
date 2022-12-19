@@ -1,4 +1,4 @@
-#![allow(unused)]
+#![allow(dead_code)]
 
 extern crate ansi_term;
 extern crate env_logger;
