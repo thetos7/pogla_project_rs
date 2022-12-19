@@ -67,7 +67,7 @@ macro_rules! gl_checked {
     }};
     {$( $l:stmt; )+} => {
         {
-            gl_checked!(@step 1, [$($l;)*])
+            gl_checked!(@step 1, [$($l;)+])
         }
     };
 }
