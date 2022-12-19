@@ -1,4 +1,10 @@
-use std::{cell::RefCell, collections::HashMap, ffi::CString, ptr::null_mut, rc::Rc};
+use std::{
+    cell::RefCell,
+    collections::HashMap,
+    ffi::{CStr, CString},
+    ptr::null_mut,
+    rc::Rc,
+};
 
 use gl::types::{GLenum, GLint, GLuint};
 
@@ -155,9 +161,8 @@ impl ProgramBuilder {
             };
 
             let name = unsafe {
-                let mut name = name.clone();
-                name.truncate(length as usize);
-                CString::from_vec_unchecked(name)
+                CStr::from_ptr(name.as_ptr() as _)
+                    .to_owned()
                     .to_string_lossy()
                     .into_owned()
             };
