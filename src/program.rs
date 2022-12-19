@@ -1,8 +1,7 @@
 use std::{
     cell::RefCell,
     collections::HashMap,
-    ffi::{CStr, CString},
-    ptr::null_mut,
+    ffi::CStr,
     rc::Rc,
 };
 

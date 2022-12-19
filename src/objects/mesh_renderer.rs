@@ -1,4 +1,4 @@
-use std::{borrow::BorrowMut, cell::RefCell, collections::HashMap, default, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use cgmath::Matrix4;
 use gl::types::{GLenum, GLfloat, GLint, GLuint};
@@ -67,15 +67,12 @@ impl MeshRenderer {
 }
 
 mod builder {
-    use std::{borrow::Borrow, mem::size_of};
+    use std::mem::size_of;
 
     use cgmath::{Matrix4, SquareMatrix};
-    use gl::types::{GLsizeiptr, GLuint};
+    use gl::types::GLuint;
 
-    use crate::{
-        definitions, gl_check, gl_checked,
-        program::{self, uniform},
-    };
+    use crate::{definitions, gl_check, gl_checked, program::uniform};
 
     use super::*;
 
@@ -103,13 +100,13 @@ mod builder {
 
         /// Specifies the program to use when rendering the mesh
         pub fn shader(mut self, program: ProgramType) -> Self {
-            self.shader.insert(program);
+            self.shader = Some(program);
             self
         }
 
         /// Specifies how OpenGL should draw the mesh based on the contents of its buffer(s)
         pub fn draw_mode(mut self, mode: DrawMode) -> Self {
-            self.draw_mode.insert(mode);
+            self.draw_mode = Some(mode);
             self
         }
 
@@ -136,7 +133,7 @@ mod builder {
         }
 
         pub fn transform(mut self, mat: Matrix4<GLfloat>) -> Self {
-            self.transform.insert(mat);
+            self.transform = Some(mat);
             self
         }
 
