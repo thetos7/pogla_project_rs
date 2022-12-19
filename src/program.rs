@@ -106,7 +106,7 @@ impl ProgramBuilder {
         self
     }
 
-    fn build_uniform_map<'a>(program: &ProgramType) {
+    fn build_uniform_map(program: &ProgramType) {
         let mut prog = program.borrow_mut();
         let mut max_name_length: GLint = 0;
         unsafe {
@@ -125,13 +125,14 @@ impl ProgramBuilder {
         for i in 0..uniform_count as u32 {
             let mut uniform_type: GLenum = 0;
             let mut size: GLint = 0;
+            let mut length = 0;
 
             unsafe {
                 gl::GetActiveUniform(
                     prog.id,
                     i,
                     max_name_length + 1,
-                    null_mut(),
+                    &mut length,
                     &mut size,
                     &mut uniform_type,
                     name.as_mut_ptr() as _,
@@ -146,7 +147,9 @@ impl ProgramBuilder {
             };
 
             let name = unsafe {
-                CString::from_vec_with_nul_unchecked(name.clone())
+                let mut name = name.clone();
+                name.truncate(length as usize);
+                CString::from_vec_unchecked(name)
                     .to_string_lossy()
                     .into_owned()
             };
