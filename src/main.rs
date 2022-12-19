@@ -20,7 +20,7 @@ mod definitions;
 fn main() {
     logger::init_default();
 
-    let engine = unsafe { Engine::instance() };
+    let engine = unsafe { Engine::instance_mut() };
 
     engine.init();
 

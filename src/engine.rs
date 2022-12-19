@@ -38,7 +38,11 @@ impl Engine {
         }
     }
 
-    pub unsafe fn instance() -> &'static mut Self {
+    pub unsafe fn instance_mut() -> &'static mut Self {
+        INSTANCE.get_or_insert_with(Engine::new)
+    }
+
+    pub unsafe fn instance() -> &'static Self {
         INSTANCE.get_or_insert_with(Engine::new)
     }
 
