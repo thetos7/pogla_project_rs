@@ -162,13 +162,13 @@ impl Engine {
     }
 
     fn _init_objects(&mut self) {
-        let mr = MeshRenderer::builder()
+        let triangle_renderer = MeshRenderer::builder()
             .shader(self.programs.get("uniform").unwrap().clone())
             .add_buffer(Vec::from(VERTICES.as_slice()))
             .add_attribute("position", 3, 0)
             .draw_mode(DrawMode::Triangles)
             .build();
-        self.drawables.push(mr);
+        self.drawables.push(triangle_renderer);
     }
 
     pub fn init(&mut self) -> &mut Self {
