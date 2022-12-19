@@ -1,15 +1,20 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc, time::Instant};
 
+use cgmath::{Matrix4, SquareMatrix, Vector4};
+use gl::types::GLfloat;
 use sdl2::{event::Event, keyboard::Keycode, video::Window, EventPump};
 
 use crate::{
     gl_checked,
+    objects::{DrawMode, MeshRenderer},
     program::{
         shader::{Shader, ShaderType},
         Program,
     },
     traits::{Drawable, Updateable},
 };
+
+const VERTICES: [GLfloat; 9] = [0., 0.5, 0., -0.5, -0.5, 0., 0.5, -0.5, 0.];
 
 #[derive(Default)]
 pub struct Engine {
@@ -78,6 +83,7 @@ impl Engine {
                 gl::ClearColor(0.66, 0.66, 0.66, 1.);
                 gl::PixelStorei(gl::PACK_ALIGNMENT, PIXEL_BYTE_ALIGNMENT_LEN);
                 gl::PixelStorei(gl::UNPACK_ALIGNMENT, PIXEL_BYTE_ALIGNMENT_LEN);
+                gl::FrontFace(gl::CCW);
             };
         }
     }
@@ -107,12 +113,69 @@ impl Engine {
         };
 
         self.programs.insert("basic".into(), program);
+
+        let program = Program::builder("uniform")
+            .add_shader(
+                "uniform_vertex",
+                Shader::new(ShaderType::Vertex)
+                    .load("resources/shaders/uniform/uniform.vert")
+                    .unwrap(),
+            )
+            .add_shader(
+                "uniform_fragment",
+                Shader::new(ShaderType::Fragment)
+                    .load("resources/shaders/uniform/uniform.frag")
+                    .unwrap(),
+            )
+            .build();
+
+        let program = match program {
+            Ok(prog) => prog,
+            Err(error) => {
+                error.log_error();
+                panic!("program creation failed");
+            }
+        };
+
+        program
+            .borrow()
+            .uniform("projection")
+            .unwrap()
+            .borrow_mut()
+            .set_mat4(&Matrix4::identity());
+
+        program
+            .borrow()
+            .uniform("view_transform")
+            .unwrap()
+            .borrow_mut()
+            .set_mat4(&Matrix4::identity());
+
+        program
+            .borrow()
+            .uniform("object_color")
+            .unwrap()
+            .borrow_mut()
+            .set_vec4(&Vector4::new(1., 0., 0., 1.));
+
+        self.programs.insert("uniform".into(), program);
+    }
+
+    fn _init_objects(&mut self) {
+        let mr = MeshRenderer::builder()
+            .shader(self.programs.get("uniform").unwrap().clone())
+            .add_buffer(Vec::from(VERTICES))
+            .add_attribute("position", 3, 0)
+            .draw_mode(DrawMode::Triangles)
+            .build();
+        self.drawables.push(mr);
     }
 
     pub fn init(&mut self) -> &mut Self {
         self._init_sdl();
         self._init_gl();
         self._init_shaders();
+        self._init_objects();
         self
     }
 
