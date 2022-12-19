@@ -2,7 +2,7 @@ use std::{cell::RefCell, collections::HashMap, ffi::CString, ptr::null_mut, rc::
 
 use gl::types::{GLenum, GLint, GLuint};
 
-use crate::{gl_check, gl_utils::new_log_buffer, program::shader::ShaderCompileError};
+use crate::{gl_check, gl_utils::cstring_with_null_bytes, program::shader::ShaderCompileError};
 
 use self::{
     shader::{Shader, ShaderHandle, ShaderType},
@@ -222,7 +222,7 @@ impl ProgramBuilder {
                 let mut log_size = 0;
                 gl::GetProgramiv(program_id, gl::INFO_LOG_LENGTH, &mut log_size);
                 gl_check!();
-                let program_log = new_log_buffer(log_size as usize + 1);
+                let program_log = cstring_with_null_bytes(log_size as usize + 1);
                 gl::GetProgramInfoLog(
                     program_id,
                     log_size,

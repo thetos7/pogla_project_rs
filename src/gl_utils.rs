@@ -1,5 +1,5 @@
 use std::ffi::CString;
 
-pub fn new_log_buffer(length: usize) -> CString {
+pub fn cstring_with_null_bytes(length: usize) -> CString {
     unsafe { CString::from_vec_unchecked(vec![b'\0'; length]) }
 }

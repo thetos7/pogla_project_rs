@@ -4,7 +4,7 @@ use std::{
     ptr::{null, null_mut},
 };
 
-use crate::{gl_check, gl_utils::new_log_buffer};
+use crate::{gl_check, gl_utils::cstring_with_null_bytes};
 
 #[derive(Clone, Copy, Debug)]
 #[allow(unused)]
@@ -119,7 +119,7 @@ impl Shader {
                 let mut log_size: gl::types::GLint = 0;
                 gl::GetShaderiv(shader_id, gl::INFO_LOG_LENGTH, &mut log_size);
                 gl_check!();
-                let shader_log: CString = new_log_buffer(log_size as usize + 1);
+                let shader_log: CString = cstring_with_null_bytes(log_size as usize + 1);
                 gl::GetShaderInfoLog(shader_id, log_size, null_mut(), shader_log.as_ptr() as _);
                 gl_check!();
                 gl::DeleteShader(shader_id);
