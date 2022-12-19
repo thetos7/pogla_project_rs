@@ -54,6 +54,14 @@ impl Program {
     pub fn uniform(&self, name: impl Into<String>) -> Option<&UniformEntryType> {
         self.uniforms.get(&name.into())
     }
+
+    pub fn id(&self) -> ProgramIdType {
+        self.id
+    }
+
+    pub fn name(&self) -> &String {
+        &self.name
+    }
 }
 
 impl Drop for Program {
