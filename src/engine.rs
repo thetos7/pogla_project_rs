@@ -164,7 +164,7 @@ impl Engine {
     fn _init_objects(&mut self) {
         let mr = MeshRenderer::builder()
             .shader(self.programs.get("uniform").unwrap().clone())
-            .add_buffer(Vec::from(VERTICES))
+            .add_buffer(Vec::from(VERTICES.as_slice()))
             .add_attribute("position", 3, 0)
             .draw_mode(DrawMode::Triangles)
             .build();
