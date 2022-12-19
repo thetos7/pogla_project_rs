@@ -15,6 +15,7 @@ mod logger;
 mod program;
 mod traits;
 mod objects;
+mod definitions;
 
 fn main() {
     logger::init_default();
