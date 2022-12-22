@@ -11,7 +11,7 @@ use sdl2::{
 };
 
 use crate::{
-    definitions, gl_checked,
+    definitions, gl_check, gl_checked,
     input::InputState,
     objects::{Camera, DrawMode, MeshRenderer},
     program::{
@@ -358,6 +358,34 @@ impl Engine {
         self
     }
 
+    fn on_window_resize(&mut self, width: i32, height: i32) {
+        unsafe {
+            gl::Viewport(0, 0, width, height);
+            gl_check!();
+        }
+        let aspect_ratio = width as f32 / height as f32;
+        self.update_perspective(aspect_ratio);
+    }
+
+    fn update_perspective(&mut self, aspect_ratio: f32) {
+        let projection = Matrix4::from(PerspectiveFov {
+            aspect: aspect_ratio,
+            far: definitions::DEFAULT_ZFAR,
+            near: definitions::DEFAULT_ZNEAR,
+            fovy: Rad(definitions::DEFAULT_FOV),
+        });
+
+        for u in self.projection_uniforms.iter() {
+            u.borrow_mut().set_mat4(&projection);
+        }
+
+        self.main_camera
+            .as_ref()
+            .unwrap()
+            .borrow_mut()
+            .set_projection(projection);
+    }
+
     fn _handle_events(&mut self, should_close: &mut bool) {
         static mut PREV_MOUSE_X: i32 = 0;
         static mut PREV_MOUSE_Y: i32 = 0;
@@ -495,6 +523,11 @@ impl Engine {
                     win_event: WindowEvent::FocusLost,
                     ..
                 } => input.focused = false,
+
+                Event::Window {
+                    win_event: WindowEvent::Resized(width, height),
+                    ..
+                } => unsafe { Engine::on_window_resize(Engine::instance_mut(), width, height) },
 
                 Event::MouseMotion {
                     xrel: x, yrel: y, ..
