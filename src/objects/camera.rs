@@ -48,12 +48,26 @@ impl Camera {
         )
     }
 
+    /// forward unit vector on the xy (horizontal) plane
+    pub fn planar_forward(&self) -> Vector3<GLfloat> {
+        Vector3::new(self.yaw.cos(), self.yaw.sin(), 0.)
+    }
+
     pub fn position(&self) -> &Point3<GLfloat> {
         &self.position
     }
 
     pub fn transform(&self) -> Matrix4<GLfloat> {
-        Matrix4::look_to_rh(self.position, self.forward(), UP)
+        let forward = self.forward();
+        let dot = forward.dot(UP);
+        let up = if dot < -0.99 {
+            self.planar_forward()
+        } else if dot > 0.99 {
+            -self.planar_forward()
+        } else {
+            UP
+        };
+        Matrix4::look_to_rh(self.position, forward, up)
     }
 
     pub fn projection(&self) -> &Matrix4<GLfloat> {
@@ -65,7 +79,7 @@ impl Camera {
     }
 
     pub fn move_relative(&mut self, movement: &Vector3<GLfloat>) -> &mut Self {
-        let forward = Vector3::new(self.yaw.cos(), self.yaw.sin(), 0.);
+        let forward = self.planar_forward();
         let right = Vector3::new(
             (self.yaw - FRAC_PI_2).cos(),
             (self.yaw - FRAC_PI_2).sin(),
