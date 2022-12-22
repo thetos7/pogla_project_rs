@@ -16,6 +16,7 @@ mod program;
 mod traits;
 mod objects;
 mod definitions;
+mod input;
 
 fn main() {
     logger::init_default();

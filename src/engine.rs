@@ -2,11 +2,18 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc, time::Instant};
 
 use cgmath::{Matrix4, SquareMatrix, Vector4};
 use gl::types::GLfloat;
-use sdl2::{event::Event, keyboard::Keycode, video::Window, EventPump};
+use sdl2::{
+    event::{Event, WindowEvent},
+    keyboard::Keycode,
+    mouse::MouseButton,
+    video::Window,
+    EventPump,
+};
 
 use crate::{
-    gl_checked,
-    objects::{DrawMode, MeshRenderer},
+    definitions, gl_checked,
+    input::InputState,
+    objects::{Camera, DrawMode, MeshRenderer},
     program::{
         shader::{Shader, ShaderType},
         Program,
@@ -184,16 +191,152 @@ impl Engine {
     }
 
     fn _handle_events(&mut self, should_close: &mut bool) {
-        for event in self.pump.as_mut().unwrap().poll_iter() {
+        static mut PREV_MOUSE_X: i32 = 0;
+        static mut PREV_MOUSE_Y: i32 = 0;
+
+        let mut input = unsafe { InputState::get_mut() };
+        input.mouse_x_axis = 0.; // reset mouse, no movement = no event
+        input.mouse_y_axis = 0.;
+
+        let events = self.pump.as_mut().unwrap();
+
+        for event in events.poll_iter() {
             match event {
-                Event::Quit { .. }
-                | Event::KeyDown {
+                // quit event has no window id
+                Event::Quit { .. } => {
+                    *should_close = true;
+                    return;
+                }
+                _ => {}
+            }
+
+            let Some(window_id) = event.get_window_id() else {continue};
+            if window_id != self.window.as_ref().unwrap().id() {
+                continue;
+            }
+
+            match event {
+                Event::KeyDown {
                     keycode: Some(Keycode::Escape),
                     ..
                 } => {
                     *should_close = true;
                     return;
                 }
+                Event::KeyDown {
+                    keycode: Some(Keycode::Tab),
+                    ..
+                } => {
+                    self.sdl
+                        .as_ref()
+                        .unwrap()
+                        .mouse()
+                        .set_relative_mouse_mode(false);
+                    input.capture_cursor = false;
+                }
+                Event::MouseButtonDown {
+                    mouse_btn: MouseButton::Left,
+                    ..
+                } => {
+                    // may need more checks
+                    self.sdl
+                        .as_ref()
+                        .unwrap()
+                        .mouse()
+                        .set_relative_mouse_mode(true);
+                    input.capture_cursor = true;
+                }
+
+                Event::KeyDown {
+                    keycode: Some(Keycode::Z),
+                    ..
+                } => input.forward = true,
+
+                Event::KeyUp {
+                    keycode: Some(Keycode::Z),
+                    ..
+                } => input.forward = false,
+
+                Event::KeyDown {
+                    keycode: Some(Keycode::S),
+                    ..
+                } => input.backward = true,
+
+                Event::KeyUp {
+                    keycode: Some(Keycode::S),
+                    ..
+                } => input.backward = false,
+
+                Event::KeyDown {
+                    keycode: Some(Keycode::D),
+                    ..
+                } => input.right = true,
+
+                Event::KeyUp {
+                    keycode: Some(Keycode::D),
+                    ..
+                } => input.right = false,
+
+                Event::KeyDown {
+                    keycode: Some(Keycode::Q),
+                    ..
+                } => input.left = true,
+
+                Event::KeyUp {
+                    keycode: Some(Keycode::Q),
+                    ..
+                } => input.left = false,
+
+                Event::KeyDown {
+                    keycode: Some(Keycode::LShift),
+                    ..
+                } => input.down = true,
+
+                Event::KeyUp {
+                    keycode: Some(Keycode::LShift),
+                    ..
+                } => input.down = false,
+
+                Event::KeyDown {
+                    keycode: Some(Keycode::Space),
+                    ..
+                } => input.up = true,
+
+                Event::KeyUp {
+                    keycode: Some(Keycode::Space),
+                    ..
+                } => input.up = false,
+
+                Event::KeyDown {
+                    keycode: Some(Keycode::L),
+                    ..
+                } => {
+                    let camera = self.main_camera.as_ref().unwrap().borrow();
+                    log::debug!("camera forward: {:#?}", camera.forward());
+                    log::debug!("camera position: {:#?}", camera.position());
+                    log::debug!("camera projection: {:#?}", camera.projection());
+                    log::debug!("camera view_transform: {:#?}", camera.transform());
+                }
+
+                Event::Window {
+                    win_event: WindowEvent::FocusGained,
+                    ..
+                } => input.focused = true,
+
+                Event::Window {
+                    win_event: WindowEvent::FocusLost,
+                    ..
+                } => input.focused = false,
+
+                Event::MouseMotion {
+                    xrel: x, yrel: y, ..
+                } => unsafe {
+                    input.mouse_x_axis = (x - PREV_MOUSE_X) as f32;
+                    input.mouse_y_axis = (y - PREV_MOUSE_Y) as f32;
+                    PREV_MOUSE_X = x;
+                    PREV_MOUSE_Y = y;
+                },
+
                 _ => {}
             }
         }
