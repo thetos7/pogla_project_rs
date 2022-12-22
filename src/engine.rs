@@ -1,6 +1,6 @@
-use std::{cell::RefCell, collections::HashMap, rc::Rc, time::Instant};
+use std::{cell::RefCell, collections::HashMap, f32::consts::PI, rc::Rc, time::Instant};
 
-use cgmath::{Matrix4, SquareMatrix, Vector4};
+use cgmath::{Matrix4, PerspectiveFov, Point3, Rad, SquareMatrix, Vector4};
 use gl::types::GLfloat;
 use sdl2::{
     event::{Event, WindowEvent},
@@ -16,6 +16,7 @@ use crate::{
     objects::{Camera, DrawMode, MeshRenderer},
     program::{
         shader::{Shader, ShaderType},
+        uniform::Uniform,
         Program,
     },
     traits::{Drawable, Updateable},
@@ -34,6 +35,9 @@ pub struct Engine {
     last_frame_time: Option<Instant>,
     updateables: Vec<Rc<RefCell<dyn Updateable>>>,
     drawables: Vec<Rc<RefCell<dyn Drawable>>>,
+    view_transform_uniforms: Vec<Rc<RefCell<Uniform>>>,
+    projection_uniforms: Vec<Rc<RefCell<Uniform>>>,
+    main_camera: Option<Rc<RefCell<Camera>>>,
 }
 
 static mut INSTANCE: Option<Engine> = None;
@@ -123,7 +127,7 @@ impl Engine {
             }
         };
 
-        self.programs.insert("basic".into(), program);
+        self.register_program("basic", program);
 
         let program = Program::builder("uniform")
             .add_shader(
@@ -169,7 +173,7 @@ impl Engine {
             .borrow_mut()
             .set_vec4(&Vector4::new(1., 0., 0., 1.));
 
-        self.programs.insert("uniform".into(), program);
+        self.register_program("uniform", program);
     }
 
     fn _init_objects(&mut self) {
@@ -179,13 +183,122 @@ impl Engine {
             .add_attribute("position", 3, 0)
             .draw_mode(DrawMode::Triangles)
             .build();
-        self.drawables.push(triangle_renderer);
+        self.register_renderer(triangle_renderer);
+    }
+
+    fn register_dynamic_object(&mut self, obj: Rc<RefCell<dyn Updateable>>) {
+        self.updateables.push(obj);
+    }
+
+    fn register_renderer(&mut self, obj: Rc<RefCell<dyn Drawable>>) {
+        self.drawables.push(obj);
+    }
+
+    fn register_program(&mut self, name: impl Into<String>, program: Rc<RefCell<Program>>) {
+        let name = name.into();
+        self.programs.insert(name.clone(), program.clone());
+
+        let program = program.as_ref().borrow();
+
+        let projection = program.uniform(definitions::PROJECTION_UNIFORM_NAME);
+
+        let view_transform = program.uniform(definitions::VIEW_TRANSFORM_UNIFORM_NAME);
+
+        let mut error: bool = false;
+
+        let has_projection = projection.is_some();
+        let is_projection_type_ok = if let Some(u) = projection {
+            u.as_ref().borrow().value_type() == gl::FLOAT_MAT4
+        } else {
+            false
+        };
+
+        let has_view_transform = view_transform.is_some();
+        let is_view_transform_type_ok = if let Some(u) = view_transform {
+            u.as_ref().borrow().value_type() == gl::FLOAT_MAT4
+        } else {
+            false
+        };
+
+        if has_projection != has_view_transform && (has_projection || has_view_transform) {
+            log::warn!(
+                "program `{name}` has one of {projection} or {view_transform} uniforms, but not both.",
+                projection = definitions::PROJECTION_UNIFORM_NAME,
+                view_transform = definitions::VIEW_TRANSFORM_UNIFORM_NAME
+            );
+            error = true;
+        }
+
+        if has_projection && !is_projection_type_ok {
+            log::warn!(
+                "The {projection} uniform of program `{name}` is not of type mat4",
+                projection = definitions::PROJECTION_UNIFORM_NAME
+            );
+            error = true;
+        }
+        if has_view_transform && !is_view_transform_type_ok {
+            log::warn!(
+                "The {view_transform} uniform of program `{name}` is not of type mat4",
+                view_transform = definitions::VIEW_TRANSFORM_UNIFORM_NAME
+            );
+            error = true;
+        }
+
+        // view independant shader
+        if !(has_projection || has_view_transform) {
+            return;
+        }
+
+        if !error {
+            self.view_transform_uniforms
+                .push(view_transform.unwrap().clone());
+            self.projection_uniforms.push(projection.unwrap().clone());
+        } else {
+            log::warn!("Due to the previous uniform error(s), the program `{name}` will not respond to camera changes")
+        }
+    }
+
+    fn _init_point_of_view(&mut self) {
+        let projection = Matrix4::from(PerspectiveFov {
+            aspect: definitions::DEFAULT_ASPECT_RATIO,
+            fovy: Rad(definitions::DEFAULT_FOV),
+            near: definitions::DEFAULT_ZNEAR,
+            far: definitions::DEFAULT_ZFAR,
+        });
+
+        let camera = Rc::new(RefCell::new(Camera::new(
+            Point3::new(3.5, 0., 0.),
+            0.,
+            PI,
+            projection.clone(),
+        )));
+
+        let view_transform = camera.as_ref().borrow().transform();
+        self.register_dynamic_object(camera.clone());
+        self.main_camera = Some(camera);
+
+        for i in 0..self.projection_uniforms.len() {
+            self.projection_uniforms[i]
+                .as_ref()
+                .borrow_mut()
+                .set_mat4(&projection);
+            self.view_transform_uniforms[i]
+                .as_ref()
+                .borrow_mut()
+                .set_mat4(&view_transform);
+        }
     }
 
     pub fn init(&mut self) -> &mut Self {
+        log::info!("initialising SDL...");
         self._init_sdl();
+        log::info!("initialising OpenGL...");
         self._init_gl();
+        log::info!("initialising shaders...");
         self._init_shaders();
+        log::info!("initialising point of view...");
+        self._init_point_of_view();
+        log::info!("initialising objects...");
         self._init_objects();
         self
     }
@@ -369,6 +482,11 @@ impl Engine {
 
     pub fn display(&self) -> &Self {
         self._clear_frame();
+        let view_transform = self.main_camera.as_ref().unwrap().borrow().transform();
+
+        for uniform in self.view_transform_uniforms.iter() {
+            uniform.borrow_mut().set_mat4(&view_transform);
+        }
 
         for item in self.drawables.iter() {
             item.borrow().draw();
