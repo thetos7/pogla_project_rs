@@ -213,10 +213,14 @@ impl Drawable for ParticleSystem {
 }
 
 impl Updatable for ParticleSystem {
-    fn update(&mut self, _delta_time: f32) {
+    fn update(&mut self, delta_time: f32) {
         unsafe {
             gl::BindVertexArray(self.vao_id);
             gl_check!();
+        }
+
+        if let Some(uniform) = self.compute_program.uniform("uDeltaTime") {
+            uniform.borrow_mut().set_float(delta_time);
         }
 
         let _ctx = self.compute_program.bound_context();
