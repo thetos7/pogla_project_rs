@@ -38,7 +38,6 @@ mod builder {
     use std::mem::size_of;
 
     use cgmath::{Matrix4, SquareMatrix};
-    use gl::types::GLuint;
 
     use crate::{definitions, gl_check, gl_checked, gl_types::DrawMode, program::uniform};
 
