@@ -79,6 +79,9 @@ const VERTICES: [GLfloat; 108] = [
     -1.0, 1.0, 1.0, // v7
 ];
 
+type UniformCollection = Vec<Rc<RefCell<Uniform>>>;
+type CameraPointer = Rc<RefCell<Camera>>;
+
 #[derive(Default)]
 pub struct Engine {
     sdl: Option<sdl2::Sdl>,
@@ -90,9 +93,9 @@ pub struct Engine {
     last_frame_time: Option<Instant>,
     updateables: Vec<Rc<RefCell<dyn Updateable>>>,
     drawables: Vec<Rc<RefCell<dyn Drawable>>>,
-    view_transform_uniforms: Vec<Rc<RefCell<Uniform>>>,
-    projection_uniforms: Vec<Rc<RefCell<Uniform>>>,
-    main_camera: Option<Rc<RefCell<Camera>>>,
+    view_transform_uniforms: UniformCollection,
+    projection_uniforms: UniformCollection,
+    main_camera: Option<CameraPointer>,
 }
 
 static mut INSTANCE: Option<Engine> = None;
@@ -360,16 +363,25 @@ impl Engine {
         self
     }
 
-    fn on_window_resize(&mut self, width: i32, height: i32) {
+    fn on_window_resize(
+        projection_uniforms: &mut UniformCollection,
+        main_camera: &CameraPointer,
+        width: i32,
+        height: i32,
+    ) {
         unsafe {
             gl::Viewport(0, 0, width, height);
             gl_check!();
         }
         let aspect_ratio = width as f32 / height as f32;
-        self.update_perspective(aspect_ratio);
+        Self::update_perspective(projection_uniforms, main_camera, aspect_ratio);
     }
 
-    fn update_perspective(&mut self, aspect_ratio: f32) {
+    fn update_perspective(
+        projection_uniforms: &mut UniformCollection,
+        main_camera: &CameraPointer,
+        aspect_ratio: f32,
+    ) {
         let projection = Matrix4::from(PerspectiveFov {
             aspect: aspect_ratio,
             far: definitions::DEFAULT_ZFAR,
@@ -377,15 +389,11 @@ impl Engine {
             fovy: Rad(definitions::DEFAULT_FOV),
         });
 
-        for u in self.projection_uniforms.iter() {
+        for u in projection_uniforms.iter() {
             u.borrow_mut().set_mat4(&projection);
         }
 
-        self.main_camera
-            .as_ref()
-            .unwrap()
-            .borrow_mut()
-            .set_projection(projection);
+        main_camera.borrow_mut().set_projection(projection);
     }
 
     fn _handle_events(&mut self, should_close: &mut bool) {
@@ -534,7 +542,12 @@ impl Engine {
                 Event::Window {
                     win_event: WindowEvent::Resized(width, height),
                     ..
-                } => unsafe { Engine::on_window_resize(Engine::instance_mut(), width, height) },
+                } => Engine::on_window_resize(
+                    &mut self.projection_uniforms,
+                    self.main_camera.as_ref().unwrap(),
+                    width,
+                    height,
+                ),
 
                 Event::MouseMotion {
                     xrel: x, yrel: y, ..
