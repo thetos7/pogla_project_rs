@@ -3,7 +3,7 @@ use std::f32::consts::{FRAC_PI_2, PI};
 use cgmath::{InnerSpace, Matrix4, Point3, Vector3};
 use gl::types::GLfloat;
 
-use crate::{input::InputState, traits::Updateable};
+use crate::{input::InputState, traits::Updatable};
 
 const UP: Vector3<GLfloat> = Vector3::new(0., 0., 1.);
 const LOOK_SENSITIVITY: f32 = 0.005;
@@ -91,7 +91,7 @@ impl Camera {
     }
 }
 
-impl Updateable for Camera {
+impl Updatable for Camera {
     fn update(&mut self, delta_time: f32) {
         let input = unsafe { InputState::get() };
         if !input.focused {

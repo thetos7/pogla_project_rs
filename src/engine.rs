@@ -19,7 +19,7 @@ use crate::{
         uniform::Uniform,
         Program,
     },
-    traits::{Drawable, Updateable},
+    traits::{Drawable, Updatable},
 };
 
 const VERTICES: [GLfloat; 108] = [
@@ -91,7 +91,7 @@ pub struct Engine {
     pump: Option<EventPump>,
     programs: HashMap<String, Rc<RefCell<Program>>>,
     last_frame_time: Option<Instant>,
-    updateables: Vec<Rc<RefCell<dyn Updateable>>>,
+    updatables: Vec<Rc<RefCell<dyn Updatable>>>,
     drawables: Vec<Rc<RefCell<dyn Drawable>>>,
     view_transform_uniforms: UniformCollection,
     projection_uniforms: UniformCollection,
@@ -246,8 +246,8 @@ impl Engine {
         self.register_renderer(triangle_renderer);
     }
 
-    fn register_dynamic_object(&mut self, obj: Rc<RefCell<dyn Updateable>>) {
-        self.updateables.push(obj);
+    fn register_dynamic_object(&mut self, obj: Rc<RefCell<dyn Updatable>>) {
+        self.updatables.push(obj);
     }
 
     fn register_renderer(&mut self, obj: Rc<RefCell<dyn Drawable>>) {
@@ -304,7 +304,7 @@ impl Engine {
             error = true;
         }
 
-        // view independant shader
+        // view independent shader
         if !(has_projection || has_view_transform) {
             return;
         }
@@ -350,15 +350,15 @@ impl Engine {
     }
 
     pub fn init(&mut self) -> &mut Self {
-        log::info!("initialising SDL...");
+        log::info!("initializing SDL...");
         self._init_sdl();
-        log::info!("initialising OpenGL...");
+        log::info!("initializing OpenGL...");
         self._init_gl();
-        log::info!("initialising shaders...");
+        log::info!("initializing shaders...");
         self._init_shaders();
-        log::info!("initialising point of view...");
+        log::info!("initializing point of view...");
         self._init_point_of_view();
-        log::info!("initialising objects...");
+        log::info!("initializing objects...");
         self._init_objects();
         self
     }
@@ -584,7 +584,7 @@ impl Engine {
 
         self.last_frame_time = Some(Instant::now());
 
-        for item in self.updateables.iter_mut() {
+        for item in self.updatables.iter_mut() {
             item.borrow_mut().update(delta)
         }
 
