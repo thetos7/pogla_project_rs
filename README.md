@@ -1,4 +1,6 @@
 # POGLA project
+Authors: Ancelin BOUCHET & Thibault AMBROSINO
+
 Particles (round 2!)
 
 This project implements a particle engine using OpenGL's compute and geometry shaders.
