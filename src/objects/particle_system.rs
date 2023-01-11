@@ -5,7 +5,7 @@ use crate::{
     gl_check, gl_checked,
     gl_types::{BufferIdType, DrawMode, VaoIdType},
     program::{Program, ProgramSharedPointer},
-    traits::{Drawable, Particle, Updatable},
+    traits::{Drawable, ParticleLike, Updatable},
 };
 
 pub struct ParticleSystem {
@@ -23,14 +23,14 @@ pub mod builder {
     use crate::{
         gl_check,
         program::{Program, ProgramSharedPointer},
-        traits::Particle,
+        traits::ParticleLike,
     };
 
     use super::*;
 
     const DEFAULT_GROUP_SIZE: usize = 1024;
 
-    pub struct ParticleSystemBuilder<ParticleType: Particle> {
+    pub struct ParticleSystemBuilder<ParticleType: ParticleLike> {
         compute_program: Option<Program>,
         display_program: Option<ProgramSharedPointer>,
         initial_particles: Option<Vec<ParticleType>>,
@@ -38,7 +38,7 @@ pub mod builder {
         buffer_base: Option<GLuint>,
     }
 
-    impl<T: Particle> Default for ParticleSystemBuilder<T> {
+    impl<T: ParticleLike> Default for ParticleSystemBuilder<T> {
         fn default() -> Self {
             Self {
                 compute_program: Default::default(),
@@ -50,7 +50,7 @@ pub mod builder {
         }
     }
 
-    impl<ParticleType: Particle> ParticleSystemBuilder<ParticleType> {
+    impl<ParticleType: ParticleLike> ParticleSystemBuilder<ParticleType> {
         pub fn compute_program(mut self, program: Program) -> Self {
             self.compute_program = Some(program);
             self
@@ -189,7 +189,7 @@ impl Drop for ParticleSystem {
 impl ParticleSystem {
     /// Creates a new particle system builder
     /// ParticleType should have a C representation (add attribute `#[repr(C)]` to struct)
-    pub fn builder<ParticleType: Particle>() -> builder::ParticleSystemBuilder<ParticleType> {
+    pub fn builder<ParticleType: ParticleLike>() -> builder::ParticleSystemBuilder<ParticleType> {
         Default::default()
     }
 }
