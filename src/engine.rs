@@ -12,8 +12,9 @@ use sdl2::{
 
 use crate::{
     definitions, gl_check, gl_checked,
+    gl_types::DrawMode,
     input::InputState,
-    objects::{Camera, DrawMode, MeshRenderer},
+    objects::{Camera, MeshRenderer},
     program::{
         shader::{Shader, ShaderType},
         uniform::Uniform,

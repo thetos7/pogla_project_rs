@@ -1,9 +1,4 @@
-use std::{
-    cell::RefCell,
-    collections::HashMap,
-    ffi::CStr,
-    rc::Rc,
-};
+use std::{cell::RefCell, collections::HashMap, ffi::CStr, rc::Rc};
 
 use gl::types::{GLenum, GLint, GLuint};
 
@@ -19,7 +14,7 @@ pub mod shader;
 pub mod uniform;
 
 pub type ProgramIdType = GLuint;
-pub type ProgramType = Rc<RefCell<Program>>;
+pub type ProgramSharedPointer = Rc<RefCell<Program>>;
 pub type UniformEntryType = Rc<RefCell<Uniform>>;
 
 #[derive(Debug)]
@@ -54,6 +49,10 @@ impl Program {
 
     pub fn is_compute(&self) -> bool {
         self.shader_flags & ShaderType::Compute.mask() != 0
+    }
+
+    pub fn has_geometry(&self) -> bool {
+        self.shader_flags & ShaderType::Geometry.mask() != 0
     }
 
     pub fn uniform(&self, name: impl Into<String>) -> Option<&UniformEntryType> {
@@ -119,7 +118,7 @@ impl ProgramBuilder {
         self
     }
 
-    fn build_uniform_map(program: &ProgramType) {
+    fn build_uniform_map(program: &ProgramSharedPointer) {
         let mut prog = program.borrow_mut();
         let mut max_name_length: GLint = 0;
         unsafe {
@@ -180,7 +179,7 @@ impl ProgramBuilder {
     }
 
     #[must_use]
-    pub fn build<'a>(self) -> Result<ProgramType, ProgramBuildError> {
+    pub fn build<'a>(self) -> Result<ProgramSharedPointer, ProgramBuildError> {
         unsafe {
             let program_id = gl::CreateProgram();
             gl_check!();

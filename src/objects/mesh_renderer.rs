@@ -1,61 +1,29 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use cgmath::Matrix4;
-use gl::types::{GLenum, GLfloat, GLint, GLuint};
+use gl::types::{GLenum, GLfloat, GLint};
 
-use crate::{gl_checked, program::uniform::Uniform, traits::Drawable};
+use crate::{
+    gl_checked,
+    gl_types::{BufferIdType, VaoIdType},
+    program::uniform::Uniform,
+    traits::Drawable,
+};
 
 use self::builder::MeshRendererBuilder;
-use crate::program::ProgramType;
+use crate::program::ProgramSharedPointer;
 
 type BufferType = Vec<GLfloat>;
-type VaoType = GLuint;
 type DrawModeType = GLenum;
 type UniformType = Option<Rc<RefCell<Uniform>>>;
 pub type MeshRendererPointer = Rc<RefCell<MeshRenderer>>;
 
-#[derive(Default)]
-pub enum DrawMode {
-    #[default]
-    Triangles,
-    TrianglesAdjacency,
-    TriangleStrip,
-    TriangleStripAdjacency,
-    TriangleFan,
-    Lines,
-    LinesAdjacency,
-    LineStrip,
-    LineStripAdjacency,
-    LineLoop,
-    Points,
-    Patches,
-}
-
-impl DrawMode {
-    pub fn gl_constant(&self) -> GLenum {
-        match *self {
-            Self::Triangles => gl::TRIANGLES,
-            Self::TrianglesAdjacency => gl::TRIANGLES_ADJACENCY,
-            Self::TriangleStrip => gl::TRIANGLE_STRIP,
-            Self::TriangleStripAdjacency => gl::TRIANGLE_STRIP_ADJACENCY,
-            Self::TriangleFan => gl::TRIANGLE_FAN,
-            Self::Lines => gl::LINES,
-            Self::LinesAdjacency => gl::LINES_ADJACENCY,
-            Self::LineStrip => gl::LINE_STRIP,
-            Self::LineStripAdjacency => gl::LINE_STRIP_ADJACENCY,
-            Self::LineLoop => gl::LINE_LOOP,
-            Self::Points => gl::POINTS,
-            Self::Patches => gl::PATCHES,
-        }
-    }
-}
-
 pub struct MeshRenderer {
-    shader: ProgramType,
-    vao_id: VaoType,
+    shader: ProgramSharedPointer,
+    vao_id: VaoIdType,
     draw_mode: DrawModeType,
     vertex_count: usize,
-    buffer_ids: Vec<GLuint>,
+    buffer_ids: Vec<BufferIdType>,
     transform: Matrix4<GLfloat>,
     transform_uniform: UniformType,
 }
@@ -72,7 +40,7 @@ mod builder {
     use cgmath::{Matrix4, SquareMatrix};
     use gl::types::GLuint;
 
-    use crate::{definitions, gl_check, gl_checked, program::uniform};
+    use crate::{definitions, gl_check, gl_checked, gl_types::DrawMode, program::uniform};
 
     use super::*;
 
@@ -82,7 +50,7 @@ mod builder {
     #[derive(Default)]
     pub struct MeshRendererBuilder {
         buffers: BufferCollectionType,
-        shader: Option<ProgramType>,
+        shader: Option<ProgramSharedPointer>,
         draw_mode: Option<DrawMode>,
         attribute_config: AttributeConfigCollection,
         transform: Option<Matrix4<GLfloat>>,
@@ -99,7 +67,7 @@ mod builder {
         }
 
         /// Specifies the program to use when rendering the mesh
-        pub fn shader(mut self, program: ProgramType) -> Self {
+        pub fn shader(mut self, program: ProgramSharedPointer) -> Self {
             self.shader = Some(program);
             self
         }
@@ -140,7 +108,7 @@ mod builder {
         pub fn build(self) -> MeshRendererPointer {
             self.assert_integrity();
 
-            let mut vao_id: VaoType = 0;
+            let mut vao_id: VaoIdType = 0;
             let program = self.shader.as_ref().unwrap();
             let program = program.as_ref().borrow();
             let prog_id = program.id();
@@ -152,7 +120,7 @@ mod builder {
                 };
             }
 
-            let mut buffer_ids: Vec<GLuint> = vec![0; self.buffers.len()];
+            let mut buffer_ids: Vec<BufferIdType> = vec![0; self.buffers.len()];
 
             unsafe {
                 gl::GenBuffers(self.buffers.len() as _, buffer_ids.as_mut_ptr()); // Generate buffers
