@@ -26,6 +26,14 @@ pub struct Program {
     uniforms: HashMap<String, UniformEntryType>,
 }
 
+pub struct ProgramContext;
+
+impl Drop for ProgramContext {
+    fn drop(&mut self) {
+        Program::unbind();
+    }
+}
+
 impl Program {
     pub fn builder(name: &str) -> ProgramBuilder {
         ProgramBuilder {
@@ -45,6 +53,12 @@ impl Program {
             gl::UseProgram(self.id);
             gl_check!();
         }
+    }
+
+    #[must_use]
+    pub fn bound_context(&self) -> ProgramContext {
+        self.bind();
+        ProgramContext
     }
 
     pub fn is_compute(&self) -> bool {
