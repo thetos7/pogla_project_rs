@@ -1,8 +1,9 @@
 use gl::types::GLuint;
 
 use crate::{
-    gl_checked,
-    gl_types::{BufferIdType, VaoIdType},
+    extensions::CeilDiv,
+    gl_check, gl_checked,
+    gl_types::{BufferIdType, DrawMode, VaoIdType},
     program::{Program, ProgramSharedPointer},
     traits::{Drawable, Particle, Updatable},
 };
@@ -150,7 +151,7 @@ pub mod builder {
                 display_program,
                 vao_id,
                 buffer_id,
-                particle_count: particles.len()
+                particle_count: particles.len(),
             }
         }
     }
@@ -177,12 +178,39 @@ impl ParticleSystem {
 
 impl Drawable for ParticleSystem {
     fn draw(&self) {
-        todo!()
+        unsafe {
+            gl::BindVertexArray(self.vao_id);
+            gl_check!();
+        }
+
+        let _ctx = self.display_program.borrow().bound_context();
+
+        unsafe {
+            gl_checked! {
+                gl::DrawArrays(DrawMode::Points.gl_constant(), 0, self.particle_count as _);
+                gl::BindVertexArray(0);
+            };
+        }
     }
 }
 
 impl Updatable for ParticleSystem {
     fn update(&mut self, _delta_time: f32) {
-        todo!()
+        unsafe {
+            gl::BindVertexArray(self.vao_id);
+            gl_check!();
+        }
+
+        let _ctx = self.compute_program.bound_context();
+
+        let group_count: GLuint = self.particle_count.ceil_div(1024) as _;
+
+        unsafe {
+            gl_checked! {
+                gl::DispatchCompute(group_count, 1, 1);
+                gl::MemoryBarrier(gl::ALL_BARRIER_BITS);
+                gl::BindVertexArray(0);
+            };
+        }
     }
 }
