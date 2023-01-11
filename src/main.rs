@@ -19,6 +19,7 @@ mod objects;
 mod program;
 mod traits;
 mod gl_types;
+mod extensions;
 
 #[derive(Parser)]
 #[command(name = "POGLA project")]
