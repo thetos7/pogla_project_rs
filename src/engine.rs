@@ -363,8 +363,8 @@ impl Engine {
         self
     }
 
-    fn on_window_resize(
-        projection_uniforms: &mut UniformCollection,
+    fn on_window_resize<'a>(
+        projection_uniforms: impl Iterator<Item = &'a RefCell<Uniform>>,
         main_camera: &mut Camera,
         width: i32,
         height: i32,
@@ -377,8 +377,8 @@ impl Engine {
         Self::update_perspective(projection_uniforms, main_camera, aspect_ratio);
     }
 
-    fn update_perspective(
-        projection_uniforms: &mut UniformCollection,
+    fn update_perspective<'a>(
+        projection_uniforms: impl Iterator<Item = &'a RefCell<Uniform>>,
         main_camera: &mut Camera,
         aspect_ratio: f32,
     ) {
@@ -389,7 +389,7 @@ impl Engine {
             fovy: Rad(definitions::DEFAULT_FOV),
         });
 
-        for u in projection_uniforms.iter() {
+        for u in projection_uniforms {
             u.borrow_mut().set_mat4(&projection);
         }
 
@@ -543,7 +543,9 @@ impl Engine {
                     win_event: WindowEvent::Resized(width, height),
                     ..
                 } => Engine::on_window_resize(
-                    &mut self.projection_uniforms,
+                    self.projection_uniforms
+                        .iter_mut()
+                        .map(|x| /*dereferences ref then rc, then gets reference of RefCell*/ &**x),
                     &mut *self.main_camera.as_ref().unwrap().borrow_mut(),
                     width,
                     height,
