@@ -365,7 +365,7 @@ impl Engine {
 
     fn on_window_resize(
         projection_uniforms: &mut UniformCollection,
-        main_camera: &CameraPointer,
+        main_camera: &mut Camera,
         width: i32,
         height: i32,
     ) {
@@ -379,7 +379,7 @@ impl Engine {
 
     fn update_perspective(
         projection_uniforms: &mut UniformCollection,
-        main_camera: &CameraPointer,
+        main_camera: &mut Camera,
         aspect_ratio: f32,
     ) {
         let projection = Matrix4::from(PerspectiveFov {
@@ -393,7 +393,7 @@ impl Engine {
             u.borrow_mut().set_mat4(&projection);
         }
 
-        main_camera.borrow_mut().set_projection(projection);
+        main_camera.set_projection(projection);
     }
 
     fn _handle_events(&mut self, should_close: &mut bool) {
@@ -544,7 +544,7 @@ impl Engine {
                     ..
                 } => Engine::on_window_resize(
                     &mut self.projection_uniforms,
-                    self.main_camera.as_ref().unwrap(),
+                    &mut *self.main_camera.as_ref().unwrap().borrow_mut(),
                     width,
                     height,
                 ),
