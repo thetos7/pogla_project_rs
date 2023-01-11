@@ -97,6 +97,8 @@ pub struct Engine {
 
 static mut INSTANCE: Option<Engine> = None;
 
+pub static mut BROKEN_RELATIVE_MOUSE_MODE: bool = false;
+
 impl Engine {
     fn new() -> Self {
         Self {
@@ -389,7 +391,6 @@ impl Engine {
     fn _handle_events(&mut self, should_close: &mut bool) {
         static mut PREV_MOUSE_X: i32 = 0;
         static mut PREV_MOUSE_Y: i32 = 0;
-        static mut BROKEN_RELATIVE_MOUSE_MODE: bool = false;
 
         let mut input = unsafe { InputState::get_mut() };
         input.mouse_x_axis = 0.; // reset mouse, no movement = no event
