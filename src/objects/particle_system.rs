@@ -14,6 +14,7 @@ pub struct ParticleSystem {
     vao_id: VaoIdType,
     buffer_id: BufferIdType,
     particle_count: usize,
+    group_size: usize,
 }
 
 pub mod builder {
@@ -27,10 +28,13 @@ pub mod builder {
 
     use super::*;
 
+    const DEFAULT_GROUP_SIZE: usize = 1024;
+
     pub struct ParticleSystemBuilder<ParticleType: Particle> {
         compute_program: Option<Program>,
         display_program: Option<ProgramSharedPointer>,
         initial_particles: Option<Vec<ParticleType>>,
+        group_size: Option<usize>,
         buffer_base: Option<GLuint>,
     }
 
@@ -41,6 +45,7 @@ pub mod builder {
                 display_program: Default::default(),
                 initial_particles: Default::default(),
                 buffer_base: Default::default(),
+                group_size: Default::default(),
             }
         }
     }
@@ -63,6 +68,11 @@ pub mod builder {
 
         pub fn buffer_base(mut self, base_binding: GLuint) -> Self {
             self.buffer_base = Some(base_binding);
+            self
+        }
+
+        pub fn group_size(mut self, group_size: usize) -> Self {
+            self.group_size = Some(group_size);
             self
         }
 
@@ -93,6 +103,13 @@ pub mod builder {
             } else {
                 log::error!("Particle system's display program missing");
                 error = true;
+            }
+
+            if let Some(ref size) = self.group_size {
+                if !(0..=1024).contains(size) {
+                    log::error!("Particle system's group size must be in the range [0,1024]");
+                    error = true;
+                }
             }
 
             if error {
@@ -152,6 +169,7 @@ pub mod builder {
                 vao_id,
                 buffer_id,
                 particle_count: particles.len(),
+                group_size: self.group_size.unwrap_or(DEFAULT_GROUP_SIZE),
             }
         }
     }
@@ -203,7 +221,7 @@ impl Updatable for ParticleSystem {
 
         let _ctx = self.compute_program.bound_context();
 
-        let group_count: GLuint = self.particle_count.ceil_div(1024) as _;
+        let group_count: GLuint = self.particle_count.ceil_div(self.group_size) as _;
 
         unsafe {
             gl_checked! {
