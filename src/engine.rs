@@ -389,6 +389,7 @@ impl Engine {
     fn _handle_events(&mut self, should_close: &mut bool) {
         static mut PREV_MOUSE_X: i32 = 0;
         static mut PREV_MOUSE_Y: i32 = 0;
+        static mut BROKEN_RELATIVE_MOUSE_MODE: bool = false;
 
         let mut input = unsafe { InputState::get_mut() };
         input.mouse_x_axis = 0.; // reset mouse, no movement = no event
@@ -504,6 +505,11 @@ impl Engine {
                 } => input.up = false,
 
                 Event::KeyDown {
+                    keycode: Some(Keycode::B),
+                    ..
+                } => unsafe { BROKEN_RELATIVE_MOUSE_MODE = !BROKEN_RELATIVE_MOUSE_MODE },
+
+                Event::KeyDown {
                     keycode: Some(Keycode::L),
                     ..
                 } => {
@@ -532,10 +538,15 @@ impl Engine {
                 Event::MouseMotion {
                     xrel: x, yrel: y, ..
                 } => unsafe {
-                    input.mouse_x_axis = (x - PREV_MOUSE_X) as f32;
-                    input.mouse_y_axis = (y - PREV_MOUSE_Y) as f32;
-                    PREV_MOUSE_X = x;
-                    PREV_MOUSE_Y = y;
+                    if BROKEN_RELATIVE_MOUSE_MODE {
+                        input.mouse_x_axis = (x - PREV_MOUSE_X) as f32;
+                        input.mouse_y_axis = (y - PREV_MOUSE_Y) as f32;
+                        PREV_MOUSE_X = x;
+                        PREV_MOUSE_Y = y;
+                    } else {
+                        input.mouse_x_axis = x as f32;
+                        input.mouse_y_axis = y as f32;
+                    }
                 },
 
                 _ => {}
