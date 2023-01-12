@@ -164,7 +164,7 @@ impl Engine {
             gl_checked! {
                 gl::Enable(gl::DEPTH_TEST);
                 gl::PolygonMode(gl::FRONT_AND_BACK, gl::FILL);
-                // gl::Enable(gl::CULL_FACE);
+                gl::Enable(gl::CULL_FACE);
                 gl::ClearColor(0.66, 0.66, 0.66, 1.);
                 gl::PixelStorei(gl::PACK_ALIGNMENT, PIXEL_BYTE_ALIGNMENT_LEN);
                 gl::PixelStorei(gl::UNPACK_ALIGNMENT, PIXEL_BYTE_ALIGNMENT_LEN);
@@ -337,7 +337,7 @@ impl Engine {
                             .unwrap(),
                     )
                     .build();
-                    
+
                 let program = match program {
                     Ok(p) => p,
                     Err(e) => {
