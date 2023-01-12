@@ -1,14 +1,8 @@
-use std::{
-    cell::RefCell,
-    collections::HashMap,
-    f32::consts::{FRAC_PI_2, FRAC_PI_4, PI},
-    rc::Rc,
-    time::Instant,
-};
+use std::{cell::RefCell, collections::HashMap, f32::consts::PI, rc::Rc, time::Instant};
 
-use cgmath::{Matrix4, PerspectiveFov, Point3, Rad, SquareMatrix, Vector3, Vector4, Zero};
+use cgmath::{Matrix4, PerspectiveFov, Point3, Rad, SquareMatrix, Vector3, Vector4};
 use gl::types::GLfloat;
-use rand::Rng;
+
 use sdl2::{
     event::{Event, WindowEvent},
     keyboard::Keycode,
@@ -332,66 +326,48 @@ impl Engine {
         // fire particle system
         {
             let particle_count = 4000;
+            let compute_program = {
+                let program = Program::builder("fire_compute")
+                    .add_shader(
+                        "compute",
+                        Shader::new(ShaderType::Compute)
+                            .load(GLSL_VERSION_SRC)
+                            .unwrap()
+                            .load("resources/shaders/fire_particle/fire.compute.glsl")
+                            .unwrap(),
+                    )
+                    .build();
+                    
+                let program = match program {
+                    Ok(p) => p,
+                    Err(e) => {
+                        e.log_error();
+                        panic!("Failed to build fire particle's compute program")
+                    }
+                };
+
+                {
+                    let program = program.borrow();
+                    program
+                        .uniform("particle_count")
+                        .unwrap()
+                        .borrow_mut()
+                        .set_uint(particle_count);
+                    program
+                        .uniform("max_lifetime")
+                        .unwrap()
+                        .borrow_mut()
+                        .set_float(4.0);
+                }
+                program
+            };
+            
             let particle_system = ParticleSystem::builder()
                 .display_program(self.programs.get("fire_display").unwrap().clone())
-                .compute_program({
-                    let program = Program::builder("fire_compute")
-                        .add_shader(
-                            "compute",
-                            Shader::new(ShaderType::Compute)
-                                .load(GLSL_VERSION_SRC)
-                                .unwrap()
-                                .load("resources/shaders/fire_particle/fire.compute.glsl")
-                                .unwrap(),
-                        )
-                        .build();
-                    let program = match program {
-                        Ok(p) => p,
-                        Err(e) => {
-                            e.log_error();
-                            panic!("Failed to build fire particle's compute program")
-                        }
-                    };
-                    {
-                        let program = program.borrow();
-                        program
-                            .uniform("particle_count")
-                            .unwrap()
-                            .borrow_mut()
-                            .set_uint(particle_count);
-                        program
-                            .uniform("max_lifetime")
-                            .unwrap()
-                            .borrow_mut()
-                            .set_float(4.0);
-                    }
-                    program
-                })
+                .compute_program(compute_program)
                 .buffer_base(1)
                 .group_size(1024)
-                .initial_particles({
-                    let mut particles = vec![];
-                    let mut rng = rand::thread_rng();
-                    for _ in 0..particle_count {
-                        let lifetime = rng.gen_range(0.0..4.0);
-                        let yaw = rng.gen_range(0.0..(2.0 * PI));
-                        let hor_scale = rng.gen_range(0.5..1.0);
-                        let vert_scale = rng.gen_range(1.0..2.0);
-                        let velocity =
-                            Vector3::new(yaw.sin() * hor_scale, yaw.cos() * hor_scale, vert_scale);
-                        let position =
-                            Vector3::new(rng.gen_range(-1.0..1.0), rng.gen_range(-1.0..1.0), 0.0);
-                        particles.push(FireParticle {
-                            lifetime,
-                            velocity: velocity.into(),
-                            position: position.clone().into(),
-                            angular_velocity: rng.gen_range(-FRAC_PI_4..FRAC_PI_4),
-                            rotation: rng.gen_range(0.0..(2.0 * PI)),
-                        });
-                    }
-                    log::debug!("{:#?}", &particles[0]);
-                    particles
-                })
+                .initial_particles(FireParticle::spawn(particle_count as usize))
                 .build();
             let particle_system = Rc::new(RefCell::new(particle_system));
 
