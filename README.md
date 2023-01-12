@@ -5,8 +5,6 @@ Particles (round 2!)
 
 This project implements a particle engine using OpenGL's compute and geometry shaders.
 
-TODO: Actually implement the particles
-
 ## Building
 
 This project require that you have the sdl2 development libraries installed, if not you can either:
