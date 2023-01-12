@@ -6,7 +6,7 @@ use std::{
     time::Instant,
 };
 
-use cgmath::{Matrix4, PerspectiveFov, Point3, Rad, SquareMatrix, Vector3, Vector4};
+use cgmath::{Matrix4, PerspectiveFov, Point3, Rad, SquareMatrix, Vector3, Vector4, Zero};
 use gl::types::GLfloat;
 use rand::Rng;
 use sdl2::{
@@ -325,13 +325,13 @@ impl Engine {
             .add_buffer(Vec::from(VERTICES.as_slice()))
             .add_attribute("position", 3, 0)
             .draw_mode(DrawMode::Triangles)
-            .transform(Matrix4::from_translation(Vector3::new(0.0, 0.0, -2.0)))
+            .transform(Matrix4::from_translation(Vector3::new(0.0, 0.0, -1.0)))
             .build();
         self.register_renderer(triangle_renderer);
 
         // fire particle system
         {
-            let particle_count = 10;
+            let particle_count = 4000;
             let particle_system = ParticleSystem::builder()
                 .display_program(self.programs.get("fire_display").unwrap().clone())
                 .compute_program({
@@ -374,22 +374,22 @@ impl Engine {
                     let mut rng = rand::thread_rng();
                     for _ in 0..particle_count {
                         let lifetime = rng.gen_range(0.0..4.0);
-                        let pitch = rng.gen_range(FRAC_PI_4..FRAC_PI_2);
                         let yaw = rng.gen_range(0.0..(2.0 * PI));
-                        let velocity = Vector3::new(
-                            yaw.sin() * pitch.cos(),
-                            yaw.cos() * pitch.cos(),
-                            pitch.sin(),
-                        ) * rng.gen_range(0.4..1.0);
-                        let position = lifetime * velocity;
+                        let hor_scale = rng.gen_range(0.5..1.0);
+                        let vert_scale = rng.gen_range(1.0..2.0);
+                        let velocity =
+                            Vector3::new(yaw.sin() * hor_scale, yaw.cos() * hor_scale, vert_scale);
+                        let position =
+                            Vector3::new(rng.gen_range(-1.0..1.0), rng.gen_range(-1.0..1.0), 0.0);
                         particles.push(FireParticle {
                             lifetime,
                             velocity: velocity.into(),
-                            position: position.into(),
+                            position: position.clone().into(),
                             angular_velocity: rng.gen_range(-FRAC_PI_4..FRAC_PI_4),
                             rotation: rng.gen_range(0.0..(2.0 * PI)),
                         });
                     }
+                    log::debug!("{:#?}", &particles[0]);
                     particles
                 })
                 .build();

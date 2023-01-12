@@ -1,8 +1,6 @@
 #line 1
 layout(local_size_x = 1024) in;
-
-precision mediump float;
-
+#define TWO_PI 6.283185307179586
 struct FireParticle
 {
     float lifetime;
@@ -28,6 +26,7 @@ void main() {
 
     FireParticle particle = particles[idx];
     particle.rotation += particle.angular_velocity * delta_time;
+    particle.rotation = mod(particle.rotation, TWO_PI);
     particle.position += particle.velocity * delta_time;
     particle.lifetime += delta_time;
     

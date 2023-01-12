@@ -35,7 +35,7 @@ void main() {
         in_position[0],
         camera_forward,
         camera_up,
-        1.0,
+        0.1,
         in_rotation_angle[0],
         projection,
         view_transform,
