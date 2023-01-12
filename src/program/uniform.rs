@@ -123,6 +123,7 @@ impl Uniform {
             gl_check!();
         }
     }
+
     pub fn set_uint(&mut self, value: GLuint) {
         if self.value_type != gl::UNSIGNED_INT {
             self.type_error("uint")
