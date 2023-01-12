@@ -1,7 +1,6 @@
 use std::{cell::RefCell, collections::HashMap, f32::consts::PI, rc::Rc, time::Instant};
 
 use cgmath::{Matrix4, PerspectiveFov, Point3, Rad, SquareMatrix, Vector3, Vector4};
-use gl::types::GLfloat;
 
 use sdl2::{
     event::{Event, WindowEvent},
@@ -12,7 +11,7 @@ use sdl2::{
 };
 
 use crate::{
-    definitions::{self, MODEL_TRANSFORM_UNIFORM_NAME},
+    definitions::{self, CUBE_VERTICES_BUFFER, GLSL_VERSION_SRC, MODEL_TRANSFORM_UNIFORM_NAME},
     gl_check, gl_checked,
     gl_types::DrawMode,
     input::InputState,
@@ -25,65 +24,6 @@ use crate::{
     },
     traits::{Drawable, Updatable},
 };
-
-const GLSL_VERSION_SRC: &'static str = "resources/shaders/version.glsl";
-
-const VERTICES: [GLfloat; 108] = [
-    // face Up
-    // tri1
-    1.0, 1.0, 1.0, // v8
-    -1.0, 1.0, 1.0, // v7
-    1.0, -1.0, 1.0, // v6
-    // tri2
-    1.0, -1.0, 1.0, // v6
-    -1.0, 1.0, 1.0, // v7
-    -1.0, -1.0, 1.0, // v5
-    // face Down
-    // tri1
-    1.0, -1.0, -1.0, // v2
-    -1.0, 1.0, -1.0, // v3
-    1.0, 1.0, -1.0, // v4
-    // tri2
-    -1.0, 1.0, -1.0, // v3
-    1.0, -1.0, -1.0, // v2
-    -1.0, -1.0, -1.0, // v1
-    // face West
-    // tri1
-    -1.0, 1.0, 1.0, // v7
-    1.0, 1.0, 1.0, // v8
-    1.0, 1.0, -1.0, // v4
-    // tri2
-    -1.0, 1.0, 1.0, // v7
-    1.0, 1.0, -1.0, // v4
-    -1.0, 1.0, -1.0, // v3
-    // face East
-    // tri1
-    1.0, -1.0, -1.0, // v2
-    1.0, -1.0, 1.0, // v6
-    -1.0, -1.0, 1.0, // v5
-    // tri2
-    -1.0, -1.0, -1.0, // v1
-    1.0, -1.0, -1.0, // v2
-    -1.0, -1.0, 1.0, // v5
-    // face North
-    // tri1
-    1.0, -1.0, -1.0, // v1
-    1.0, 1.0, 1.0, // v7
-    1.0, -1.0, 1.0, // v6
-    // tri2
-    1.0, -1.0, -1.0, // v1
-    1.0, 1.0, -1.0, // v3
-    1.0, 1.0, 1.0, // v7
-    // face South
-    // tri1
-    -1.0, -1.0, 1.0, // v5
-    -1.0, 1.0, 1.0, // v7
-    -1.0, -1.0, -1.0, // v1
-    // tri2
-    -1.0, 1.0, -1.0, // v3
-    -1.0, -1.0, -1.0, // v1
-    -1.0, 1.0, 1.0, // v7
-];
 
 type UniformCollection = Vec<Rc<RefCell<Uniform>>>;
 type CameraPointer = Rc<RefCell<Camera>>;
@@ -316,7 +256,7 @@ impl Engine {
     fn _init_objects(&mut self) {
         let triangle_renderer = MeshRenderer::builder()
             .shader(self.programs.get("uniform").unwrap().clone())
-            .add_buffer(Vec::from(VERTICES.as_slice()))
+            .add_buffer(Vec::from(CUBE_VERTICES_BUFFER.as_slice()))
             .add_attribute("position", 3, 0)
             .draw_mode(DrawMode::Triangles)
             .transform(Matrix4::from_translation(Vector3::new(0.0, 0.0, -1.0)))
@@ -361,7 +301,7 @@ impl Engine {
                 }
                 program
             };
-            
+
             let particle_system = ParticleSystem::builder()
                 .display_program(self.programs.get("fire_display").unwrap().clone())
                 .compute_program(compute_program)
