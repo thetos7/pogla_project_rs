@@ -4,6 +4,7 @@ pub type VaoIdType = GLuint;
 pub type BufferIdType = GLuint;
 
 #[derive(Default)]
+#[allow(unused)]
 pub enum DrawMode {
     #[default]
     Triangles,

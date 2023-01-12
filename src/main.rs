@@ -1,4 +1,4 @@
-#![allow(dead_code)]
+// #![allow(dead_code)]
 
 extern crate ansi_term;
 extern crate cgmath;

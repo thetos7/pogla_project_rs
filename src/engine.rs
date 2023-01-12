@@ -59,10 +59,6 @@ impl Engine {
         INSTANCE.get_or_insert_with(Engine::new)
     }
 
-    pub unsafe fn instance() -> &'static Self {
-        INSTANCE.get_or_insert_with(Engine::new)
-    }
-
     pub fn main_camera(&self) -> Option<&CameraPointer> {
         self.main_camera.as_ref()
     }
