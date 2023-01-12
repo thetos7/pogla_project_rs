@@ -26,7 +26,7 @@ mod particles;
 #[derive(Parser)]
 #[command(name = "POGLA project")]
 #[command(author = "Ancelin BOUCHET & Thibault AMBROSINO")]
-#[command(version = "0.1.0")]
+#[command(version)]
 struct Args {
     #[arg(short = 'b', long)]
     /// Whether or not the sdl2 relative mouse mode implementation is broken (it is when you can move you mouse freely after clicking on the window)
