@@ -57,7 +57,7 @@ impl Camera {
         &self.position
     }
 
-    pub fn transform(&self) -> Matrix4<GLfloat> {
+    pub fn up_forward(&self) -> (Vector3<GLfloat>,Vector3<GLfloat>) {
         let forward = self.forward();
         let dot = forward.dot(UP);
         let up = if dot < -0.99 {
@@ -67,6 +67,11 @@ impl Camera {
         } else {
             UP
         };
+        (up, forward)
+    }
+
+    pub fn transform(&self) -> Matrix4<GLfloat> {
+        let (up, forward) = self.up_forward();
         Matrix4::look_to_rh(self.position, forward, up)
     }
 
