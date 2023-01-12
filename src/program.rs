@@ -9,7 +9,6 @@ use self::{
     uniform::Uniform,
 };
 
-pub mod attribute;
 pub mod shader;
 pub mod uniform;
 
