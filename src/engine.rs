@@ -1,7 +1,14 @@
-use std::{cell::RefCell, collections::HashMap, f32::consts::PI, rc::Rc, time::Instant};
+use std::{
+    cell::RefCell,
+    collections::HashMap,
+    f32::consts::{FRAC_PI_2, FRAC_PI_4, PI},
+    rc::Rc,
+    time::Instant,
+};
 
-use cgmath::{Matrix4, PerspectiveFov, Point3, Rad, SquareMatrix, Vector4};
+use cgmath::{Matrix4, PerspectiveFov, Point3, Rad, SquareMatrix, Vector3, Vector4};
 use gl::types::GLfloat;
+use rand::Rng;
 use sdl2::{
     event::{Event, WindowEvent},
     keyboard::Keycode,
@@ -11,10 +18,12 @@ use sdl2::{
 };
 
 use crate::{
-    definitions, gl_check, gl_checked,
+    definitions::{self, MODEL_TRANSFORM_UNIFORM_NAME},
+    gl_check, gl_checked,
     gl_types::DrawMode,
     input::InputState,
-    objects::{Camera, MeshRenderer},
+    objects::{Camera, MeshRenderer, ParticleSystem},
+    particles::FireParticle,
     program::{
         shader::{Shader, ShaderType},
         uniform::Uniform,
@@ -22,6 +31,8 @@ use crate::{
     },
     traits::{Drawable, Updatable},
 };
+
+const GLSL_VERSION_SRC: &'static str = "resources/shaders/version.glsl";
 
 const VERTICES: [GLfloat; 108] = [
     // face Up
@@ -116,6 +127,10 @@ impl Engine {
 
     pub unsafe fn instance() -> &'static Self {
         INSTANCE.get_or_insert_with(Engine::new)
+    }
+
+    pub fn main_camera(&self) -> Option<&CameraPointer> {
+        self.main_camera.as_ref()
     }
 
     fn _init_sdl(&mut self) {
@@ -235,6 +250,73 @@ impl Engine {
             .set_vec4(&Vector4::new(1., 0., 0., 1.));
 
         self.register_program("uniform", program);
+
+        let program = Program::builder("fire_particle_display")
+            .add_shader(
+                "vertex",
+                Shader::new(ShaderType::Vertex)
+                    .load(GLSL_VERSION_SRC)
+                    .unwrap()
+                    .load("resources/shaders/fire_particle/fire.vert.glsl")
+                    .unwrap(),
+            )
+            .add_shader(
+                "geometry",
+                Shader::new(ShaderType::Geometry)
+                    .load(GLSL_VERSION_SRC)
+                    .unwrap()
+                    .load("resources/shaders/particle_helpers.glsl")
+                    .unwrap()
+                    .load("resources/shaders/fire_particle/fire.geom.glsl")
+                    .unwrap(),
+            )
+            .add_shader(
+                "fragment",
+                Shader::new(ShaderType::Fragment)
+                    .load(GLSL_VERSION_SRC)
+                    .unwrap()
+                    .load("resources/shaders/fire_particle/fire.frag.glsl")
+                    .unwrap(),
+            )
+            .build();
+
+        let program = match program {
+            Ok(p) => p,
+            Err(e) => {
+                e.log_error();
+                panic!("fire particle display program compilation failed");
+            }
+        };
+
+        {
+            let p = program.borrow();
+            p.uniform("fire_color")
+                .unwrap()
+                .borrow_mut()
+                .set_vec4(&Vector4::new(1.0, 0.9, 0.0, 1.0));
+            p.uniform("early_smoke_color")
+                .unwrap()
+                .borrow_mut()
+                .set_vec4(&Vector4::new(0.2, 0.0, 0.0, 1.0));
+            p.uniform("end_smoke_color")
+                .unwrap()
+                .borrow_mut()
+                .set_vec4(&Vector4::new(0.7, 0.7, 0.7, 1.0));
+            p.uniform("max_fire_lifetime")
+                .unwrap()
+                .borrow_mut()
+                .set_float(1.0);
+            p.uniform("max_smoke_lifetime")
+                .unwrap()
+                .borrow_mut()
+                .set_float(3.0);
+            p.uniform(MODEL_TRANSFORM_UNIFORM_NAME)
+                .unwrap()
+                .borrow_mut()
+                .set_mat4(&Matrix4::identity());
+        }
+
+        self.register_program("fire_display", program);
     }
 
     fn _init_objects(&mut self) {
@@ -243,8 +325,79 @@ impl Engine {
             .add_buffer(Vec::from(VERTICES.as_slice()))
             .add_attribute("position", 3, 0)
             .draw_mode(DrawMode::Triangles)
+            .transform(Matrix4::from_translation(Vector3::new(0.0, 0.0, -2.0)))
             .build();
         self.register_renderer(triangle_renderer);
+
+        // fire particle system
+        {
+            let particle_count = 10;
+            let particle_system = ParticleSystem::builder()
+                .display_program(self.programs.get("fire_display").unwrap().clone())
+                .compute_program({
+                    let program = Program::builder("fire_compute")
+                        .add_shader(
+                            "compute",
+                            Shader::new(ShaderType::Compute)
+                                .load(GLSL_VERSION_SRC)
+                                .unwrap()
+                                .load("resources/shaders/fire_particle/fire.compute.glsl")
+                                .unwrap(),
+                        )
+                        .build();
+                    let program = match program {
+                        Ok(p) => p,
+                        Err(e) => {
+                            e.log_error();
+                            panic!("Failed to build fire particle's compute program")
+                        }
+                    };
+                    {
+                        let program = program.borrow();
+                        program
+                            .uniform("particle_count")
+                            .unwrap()
+                            .borrow_mut()
+                            .set_uint(particle_count);
+                        program
+                            .uniform("max_lifetime")
+                            .unwrap()
+                            .borrow_mut()
+                            .set_float(4.0);
+                    }
+                    program
+                })
+                .buffer_base(1)
+                .group_size(1024)
+                .initial_particles({
+                    let mut particles = vec![];
+                    let mut rng = rand::thread_rng();
+                    for _ in 0..particle_count {
+                        let lifetime = rng.gen_range(0.0..4.0);
+                        let pitch = rng.gen_range(FRAC_PI_4..FRAC_PI_2);
+                        let yaw = rng.gen_range(0.0..(2.0 * PI));
+                        let velocity = Vector3::new(
+                            yaw.sin() * pitch.cos(),
+                            yaw.cos() * pitch.cos(),
+                            pitch.sin(),
+                        ) * rng.gen_range(0.4..1.0);
+                        let position = lifetime * velocity;
+                        particles.push(FireParticle {
+                            lifetime,
+                            velocity: velocity.into(),
+                            position: position.into(),
+                            angular_velocity: rng.gen_range(-FRAC_PI_4..FRAC_PI_4),
+                            rotation: rng.gen_range(0.0..(2.0 * PI)),
+                        });
+                    }
+                    particles
+                })
+                .build();
+            let particle_system = Rc::new(RefCell::new(particle_system));
+
+            self.register_dynamic_object(particle_system.clone());
+            self.register_renderer(particle_system);
+        }
     }
 
     fn register_dynamic_object(&mut self, obj: Rc<RefCell<dyn Updatable>>) {

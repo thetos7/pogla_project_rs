@@ -1,15 +1,16 @@
 use gl::types::GLuint;
 
 use crate::{
+    engine::Engine,
     extensions::CeilDiv,
     gl_check, gl_checked,
     gl_types::{BufferIdType, DrawMode, VaoIdType},
-    program::{Program, ProgramSharedPointer},
+    program::ProgramSharedPointer,
     traits::{Drawable, ParticleLike, Updatable},
 };
 
 pub struct ParticleSystem {
-    compute_program: Program,
+    compute_program: ProgramSharedPointer,
     display_program: ProgramSharedPointer,
     vao_id: VaoIdType,
     buffer_id: BufferIdType,
@@ -20,18 +21,14 @@ pub struct ParticleSystem {
 pub mod builder {
     use std::mem::size_of;
 
-    use crate::{
-        gl_check,
-        program::{Program, ProgramSharedPointer},
-        traits::ParticleLike,
-    };
+    use crate::{gl_check, program::ProgramSharedPointer, traits::ParticleLike};
 
     use super::*;
 
     const DEFAULT_GROUP_SIZE: usize = 1024;
 
     pub struct ParticleSystemBuilder<ParticleType: ParticleLike> {
-        compute_program: Option<Program>,
+        compute_program: Option<ProgramSharedPointer>,
         display_program: Option<ProgramSharedPointer>,
         initial_particles: Option<Vec<ParticleType>>,
         group_size: Option<usize>,
@@ -51,7 +48,7 @@ pub mod builder {
     }
 
     impl<ParticleType: ParticleLike> ParticleSystemBuilder<ParticleType> {
-        pub fn compute_program(mut self, program: Program) -> Self {
+        pub fn compute_program(mut self, program: ProgramSharedPointer) -> Self {
             self.compute_program = Some(program);
             self
         }
@@ -85,7 +82,7 @@ pub mod builder {
             };
 
             if let Some(ref program) = self.compute_program {
-                if !program.is_compute() {
+                if !program.borrow().is_compute() {
                     log::error!(
                         "Particle system compute/simulation program is not a compute shader"
                     );
@@ -140,13 +137,13 @@ pub mod builder {
                 gl_check!();
                 gl_checked! {
                     gl::GenBuffers(1, &mut buffer_id);
+                    gl::BindBuffer(gl::SHADER_STORAGE_BUFFER, buffer_id);
                     gl::NamedBufferData(
                         buffer_id,
                         (particles.len() * particle_byte_size) as _,
                         particles.as_ptr() as _,
                         gl::DYNAMIC_DRAW,
                     );
-                    gl::BindBuffer(gl::SHADER_STORAGE_BUFFER, buffer_id);
                     gl::BindBufferBase(
                         gl::SHADER_STORAGE_BUFFER,
                         self.buffer_base.unwrap_or(1),
@@ -195,10 +192,20 @@ impl ParticleSystem {
 }
 
 impl Drawable for ParticleSystem {
-    fn draw(&self) {
+    fn draw(&self, engine: &Engine) {
         unsafe {
             gl::BindVertexArray(self.vao_id);
             gl_check!();
+        }
+
+        let (cam_up, cam_forward) = engine.main_camera().unwrap().borrow().up_forward();
+
+        {
+            let p = self.display_program.borrow();
+            p.uniform("camera_forward")
+                .map(|u| u.borrow_mut().set_vec3(&cam_forward));
+            p.uniform("camera_up")
+                .map(|u| u.borrow_mut().set_vec3(&cam_up));
         }
 
         let _ctx = self.display_program.borrow().bound_context();
@@ -219,11 +226,11 @@ impl Updatable for ParticleSystem {
             gl_check!();
         }
 
-        if let Some(uniform) = self.compute_program.uniform("uDeltaTime") {
+        if let Some(uniform) = self.compute_program.borrow().uniform("delta_time") {
             uniform.borrow_mut().set_float(delta_time);
         }
 
-        let _ctx = self.compute_program.bound_context();
+        let _ctx = self.compute_program.borrow().bound_context();
 
         let group_count: GLuint = self.particle_count.ceil_div(self.group_size) as _;
 
