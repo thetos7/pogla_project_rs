@@ -3,7 +3,7 @@ use std::f32::consts::{FRAC_PI_2, PI};
 use cgmath::{InnerSpace, Matrix4, Point3, Vector3};
 use gl::types::GLfloat;
 
-use crate::{input::InputState, traits::Updatable};
+use crate::{extensions::SafeNormalize, input::InputState, traits::Updatable};
 
 const UP: Vector3<GLfloat> = Vector3::new(0., 0., 1.);
 const LOOK_SENSITIVITY: f32 = 0.005;
@@ -14,15 +14,6 @@ pub struct Camera {
     pitch: GLfloat,
     yaw: GLfloat,
     projection: Matrix4<GLfloat>,
-}
-
-fn safe_normalize(vector: Vector3<GLfloat>) -> Vector3<GLfloat> {
-    let norm = vector.magnitude();
-    if norm == 0. {
-        vector
-    } else {
-        vector.normalize()
-    }
 }
 
 impl Camera {
@@ -57,7 +48,7 @@ impl Camera {
         &self.position
     }
 
-    pub fn up_forward(&self) -> (Vector3<GLfloat>,Vector3<GLfloat>) {
+    pub fn up_forward(&self) -> (Vector3<GLfloat>, Vector3<GLfloat>) {
         let forward = self.forward();
         let dot = forward.dot(UP);
         let up = if dot < -0.99 {
@@ -119,7 +110,7 @@ impl Updatable for Camera {
         let y_input = input.right as i32 - input.left as i32;
         let z_input = input.up as i32 - input.down as i32;
         let move_direction =
-            safe_normalize(Vector3::new(x_input as f32, y_input as f32, z_input as f32));
+            Vector3::new(x_input as f32, y_input as f32, z_input as f32).safe_normalize();
         let movement = move_direction * SPEED * delta_time;
         self.move_relative(&movement);
     }
