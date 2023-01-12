@@ -1,5 +1,7 @@
+use crate::engine::Engine;
+
 pub trait Drawable {
-    fn draw(&self);
+    fn draw(&self, engine: &Engine);
 }
 
 pub trait Updatable {

@@ -605,7 +605,7 @@ impl Engine {
         }
 
         for item in self.drawables.iter() {
-            item.borrow().draw();
+            item.borrow().draw(self);
         }
 
         self

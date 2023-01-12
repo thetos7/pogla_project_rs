@@ -7,7 +7,7 @@ use crate::{
     gl_checked,
     gl_types::{BufferIdType, VaoIdType},
     program::uniform::Uniform,
-    traits::Drawable,
+    traits::Drawable, engine::Engine,
 };
 
 use self::builder::MeshRendererBuilder;
@@ -259,7 +259,7 @@ impl Drop for MeshRenderer {
 }
 
 impl Drawable for MeshRenderer {
-    fn draw(&self) {
+    fn draw(&self, _engine: &Engine) {
         self.shader.as_ref().borrow().bind();
         if let Some(transform_uniform) = self.transform_uniform.as_ref() {
             transform_uniform
