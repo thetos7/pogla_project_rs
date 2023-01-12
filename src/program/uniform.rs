@@ -5,7 +5,7 @@ use cgmath::{Matrix4, Vector3, Vector4};
 use crate::gl_check;
 
 use super::{Program, ProgramIdType};
-use gl::types::{GLenum, GLfloat, GLint};
+use gl::types::{GLenum, GLfloat, GLint, GLuint};
 
 type LocType = GLint;
 type SizeType = GLint;
@@ -22,6 +22,7 @@ pub fn stringify_type(value_type: TypeEnum) -> String {
         gl::FLOAT_VEC3 => "vec3".to_owned(),
         gl::FLOAT_VEC2 => "vec2".to_owned(),
         gl::INT => "int".to_owned(),
+        gl::UNSIGNED_INT => "uint".to_owned(),
         gl::SAMPLER_2D => "sampler2D".to_owned(),
         _ => format!("<unknown type 0x{value_type:x} ({value_type})>"),
     }
@@ -119,6 +120,15 @@ impl Uniform {
         }
         unsafe {
             gl::ProgramUniform1i(self.program_id(), self.location, value);
+            gl_check!();
+        }
+    }
+    pub fn set_uint(&mut self, value: GLuint) {
+        if self.value_type != gl::UNSIGNED_INT {
+            self.type_error("uint")
+        }
+        unsafe {
+            gl::ProgramUniform1ui(self.program_id(), self.location, value);
             gl_check!();
         }
     }
