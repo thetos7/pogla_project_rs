@@ -48,7 +48,7 @@ impl FireParticle {
             let lifetime = rng.gen_range(0.0..4.0);
 
             let yaw = rng.gen_range(0.0..(2.0 * PI));
-            let hor_scale = rng.gen_range(0.5..1.0);
+            let hor_scale = rng.gen_range(0.0..0.5);
             let vert_scale = rng.gen_range(1.0..2.0);
             let velocity = Vector3::new(yaw.sin() * hor_scale, yaw.cos() * hor_scale, vert_scale);
 
