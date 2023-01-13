@@ -261,7 +261,7 @@ impl Engine {
 
         // fire particle system
         {
-            let particle_count = 4000;
+            let particle_count = 16_000;
             let compute_program = {
                 let program = Program::builder("fire_compute")
                     .add_shader(
