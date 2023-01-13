@@ -14,12 +14,11 @@ use crate::{gl_checked, traits::ParticleLike};
 pub struct FireParticle {
     pub lifetime: GLfloat,
     pub rotation: GLfloat,
-    pub pad_1: GLfloat,
-    pub pad_2: GLfloat,
+    pub pad_1: [GLfloat; 2],
     pub position: [GLfloat; 3],
     pub angular_velocity: GLfloat,
     pub velocity: [GLfloat; 3],
-    pub pad_3: GLfloat,
+    pub pad_2: GLfloat,
     pub initial_position: [GLfloat; 3],
 }
 
