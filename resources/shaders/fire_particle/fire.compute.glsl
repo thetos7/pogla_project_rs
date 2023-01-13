@@ -8,6 +8,7 @@ struct FireParticle
     vec3 position;
     float angular_velocity;
     vec3 velocity;
+    vec3 initial_position;
 };
 
 layout(std430, binding = 1) buffer particle_buffer {
@@ -31,7 +32,7 @@ void main() {
     particle.lifetime += delta_time;
     
     if (particle.lifetime > max_lifetime) {
-        particle.position = vec3(0.0);
+        particle.position = particle.initial_position;
         particle.lifetime = 0.0;
     }
 
