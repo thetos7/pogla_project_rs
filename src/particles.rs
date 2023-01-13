@@ -7,10 +7,12 @@ use rand::Rng;
 use crate::{gl_checked, traits::ParticleLike};
 
 #[repr(C, align(16))]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct FireParticle {
     pub lifetime: GLfloat,
     pub rotation: GLfloat,
+    pub pad_1: GLfloat,
+    pub pad_2: GLfloat,
     pub position: [GLfloat; 3],
     pub angular_velocity: GLfloat,
     pub velocity: [GLfloat; 3],
@@ -23,9 +25,9 @@ impl ParticleLike for FireParticle {
             gl_checked! {
                 gl::VertexAttribPointer(1, 1, gl::FLOAT, gl::FALSE, size as _, 0 as _);
                 gl::VertexAttribPointer(2, 1, gl::FLOAT, gl::FALSE, size as _, 4 as _);
-                gl::VertexAttribPointer(3, 3, gl::FLOAT, gl::FALSE, size as _, 8 as _);
-                gl::VertexAttribPointer(4, 1, gl::FLOAT, gl::FALSE, size as _, 20 as _);
-                gl::VertexAttribPointer(5, 3, gl::FLOAT, gl::FALSE, size as _, 24 as _);
+                gl::VertexAttribPointer(3, 3, gl::FLOAT, gl::FALSE, size as _, 16 as _);
+                gl::VertexAttribPointer(4, 1, gl::FLOAT, gl::FALSE, size as _, 28 as _);
+                gl::VertexAttribPointer(5, 3, gl::FLOAT, gl::FALSE, size as _, 32 as _);
                 gl::EnableVertexAttribArray(1);
                 gl::EnableVertexAttribArray(2);
                 gl::EnableVertexAttribArray(3);
@@ -58,6 +60,7 @@ impl FireParticle {
                 position: position.clone().into(),
                 angular_velocity: rng.gen_range(-FRAC_PI_4..FRAC_PI_4),
                 rotation: rng.gen_range(0.0..(2.0 * PI)),
+                ..Default::default()
             });
         }
         particles
