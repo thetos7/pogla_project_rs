@@ -1,6 +1,7 @@
 use std::{
     f32::consts::{FRAC_PI_4, PI},
     mem::size_of,
+    ops::Range,
 };
 
 use cgmath::Vector3;
@@ -46,6 +47,10 @@ impl ParticleLike for FireParticle {
 
 impl FireParticle {
     pub fn spawn(count: usize) -> Vec<Self> {
+        const X_POS_RANGE: Range<f32> = -1.0..1.0;
+        const Y_POS_RANGE: Range<f32> = -1.0..1.0;
+        const Z_POS: f32 = 0.0;
+
         let mut particles = vec![];
 
         let mut rng = rand::thread_rng();
@@ -58,7 +63,11 @@ impl FireParticle {
             let vert_scale = rng.gen_range(1.0..2.0);
             let velocity = Vector3::new(yaw.sin() * hor_scale, yaw.cos() * hor_scale, vert_scale);
 
-            let position = Vector3::new(rng.gen_range(-1.0..1.0), rng.gen_range(-1.0..1.0), 0.0);
+            let position = Vector3::new(
+                rng.gen_range(X_POS_RANGE),
+                rng.gen_range(Y_POS_RANGE),
+                Z_POS,
+            );
 
             particles.push(FireParticle {
                 lifetime,
